@@ -106,30 +106,54 @@ def test_stated_violation_count_matches_the_gate():
     )
 
 
-def test_evidence_split_matches_the_register():
-    """The README's original two-way split — "Six ... Ten" — matched no reading of
-    the register. There are three kinds of prior evidence here, not two: evidence
-    carried from the parallel build, evidence carried from Palantir's documentation,
-    and none. Documentation is the weaker kind and is why those two are still probes,
-    so folding them into either bucket loses the distinction that matters.
-    """
+def test_probed_split_matches_the_register():
+    """The README states how much of Phase -1 is done. That number decides whether
+    a reader thinks a node can be opened, so it is re-derived rather than trusted.
+
+    It replaces an earlier prior-evidence split that this file caught as wrong on
+    its first run: the README claimed a two-way "Six / Ten" partition that matched
+    no reading of the register. Once probes started landing, prior evidence stopped
+    being the useful axis — probed-or-not is what gates node work."""
     prefabs = jsonl("prefabs.jsonl")
-    parallel = [p for p in prefabs if "carried evidence from a parallel build" in p["result"]]
-    none = [p for p in prefabs if "no prior evidence" in p["result"]]
-    documented = [p for p in prefabs if p not in parallel and p not in none]
+    probed = [p for p in prefabs if p.get("probed")]
+    unprobed = [p for p in prefabs if not p.get("probed")]
 
-    stated_parallel = find(r"(\w+) of the sixteen carry evidence from the parallel build", word=True)
-    stated_documented = find(r"(\w+) more — `[^`]+` and `[^`]+` — carry evidence from Palantir", word=True)
-    stated_none = find(r"(\w+) have no prior evidence at all", word=True)
+    stated_probed = find(r"\*\*(\d+) of the \d+ prefabs are probed\*\*")
+    stated_total = find(r"\*\*\d+ of the (\d+) prefabs are probed\*\*")
+    stated_unprobed = find(r"\*\*(\d+) are not probed")
 
-    assert stated_parallel == len(parallel), (
-        f"README says {stated_parallel} carry parallel-build evidence; register shows {len(parallel)}")
-    assert stated_documented == len(documented), (
-        f"README says {stated_documented} carry documentation evidence; register shows {len(documented)}")
-    assert stated_none == len(none), (
-        f"README says {stated_none} have no prior evidence; register shows {len(none)}")
-    assert stated_parallel + stated_documented + stated_none == len(prefabs), (
-        "the three-way evidence split does not add up to the prefab count")
+    assert stated_total == len(prefabs), (
+        f"README says there are {stated_total} prefabs; the register holds {len(prefabs)}")
+    assert stated_probed == len(probed), (
+        f"README says {stated_probed} are probed; the register shows {len(probed)}")
+    assert stated_unprobed == len(unprobed), (
+        f"README says {stated_unprobed} are unprobed; the register shows {len(unprobed)}")
+    assert stated_probed + stated_unprobed == len(prefabs)
+
+
+def test_every_unprobed_prefab_names_what_blocks_it():
+    """An unprobed prefab with no stated blocker is indistinguishable from one nobody
+    got to. That distinction is the whole content of a Phase -1 status report, and it
+    is the same rule the build applies to a `record_supplied` slot with no candidate:
+    an absence with no query behind it is not a finding."""
+    missing = [p["prefab"] for p in jsonl("prefabs.jsonl")
+               if not p.get("probed") and not p.get("blocked_by")]
+    assert not missing, (
+        "unprobed prefabs that do not name a blocker: " + ", ".join(missing))
+
+
+def test_every_probed_prefab_carries_a_verdict_and_versions():
+    """A probe result with no version behind it cannot be re-run against the same
+    artifact, so it is a claim rather than evidence."""
+    bad = []
+    for p in jsonl("prefabs.jsonl"):
+        if not p.get("probed"):
+            continue
+        if p.get("verdict") not in ("pass", "fail"):
+            bad.append(f"{p['prefab']}: verdict is {p.get('verdict')!r}, must be pass or fail once probed")
+        if not p.get("versions"):
+            bad.append(f"{p['prefab']}: probed with no versions recorded")
+    assert not bad, "\n  ".join(bad)
 
 
 def main():

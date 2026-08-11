@@ -44,6 +44,7 @@ import csv
 import collections
 import hashlib
 import io
+import re
 import sys
 import urllib.request
 
@@ -55,6 +56,11 @@ COMMIT = "fba4c70036eab7aeb43069f5e527e6efd756d263"
 CSV_PATH = "src/crosswalk/database_crosswalk.csv"
 
 RAW_URL = f"https://raw.githubusercontent.com/{REPO}/{COMMIT}/{CSV_PATH}"
+
+# Git's ref advertisement over plain HTTPS. No git binary, no credentials, no GitHub API
+# (api.github.com answers 403 through this build's proxy). This is what lets the probe assert
+# that the MOVABLE tag v1.2.0 still names the immutable commit we pinned.
+REFS_URL = f"https://github.com/{REPO}/info/refs?service=git-upload-pack"
 
 # sha256 of the file bytes at the pinned commit, verified byte-identical between the
 # raw.githubusercontent.com fetch and a `git clone --branch v1.2.0` checkout.
@@ -119,6 +125,27 @@ def fetch_csv_bytes():
         ) from exc
 
 
+def fetch_tag_refs():
+    """Read the repo's tag advertisement over plain HTTPS. Returns {refname: sha}."""
+    try:
+        with urllib.request.urlopen(REFS_URL, timeout=60) as resp:
+            if resp.status != 200:
+                raise RuntimeError(f"HTTP {resp.status} from {REFS_URL}")
+            body = resp.read()
+    except Exception as exc:
+        raise RuntimeError(
+            "PIC crosswalk probe could not read the upstream tag advertisement.\n"
+            f"  url: {REFS_URL}\n  err: {exc!r}\n"
+            "This probe deliberately does NOT skip: an unchecked movable tag is exactly the "
+            "hole this test exists to close."
+        ) from exc
+    text = body.decode("utf-8", "replace")
+    return {
+        m.group(2): m.group(1)
+        for m in re.finditer(r"([0-9a-f]{40}) (refs/tags/[^\s\x00]+)", text)
+    }
+
+
 def load_rows():
     raw = fetch_csv_bytes()
     got = hashlib.sha256(raw).hexdigest()
@@ -144,8 +171,34 @@ def test_artifact_exists_at_pinned_commit_with_expected_shape():
         "Note: `wc -l` reports 301 because description fields contain embedded newlines; "
         "292 is the parsed record count."
     )
-    assert not [r for r in rows if not (r["table"] or "").strip()]
-    assert not [r for r in rows if not (r["column"] or "").strip()]
+    blank_table = [i for i, r in enumerate(rows) if not (r["table"] or "").strip()]
+    assert not blank_table, f"rows with a blank `table` (entity) value at indices {blank_table}"
+    blank_col = [i for i, r in enumerate(rows) if not (r["column"] or "").strip()]
+    assert not blank_col, f"rows with a blank `column` (property) value at indices {blank_col}"
+
+
+def test_tag_v1_2_0_still_resolves_to_the_pinned_commit():
+    """The pin is only as good as the tag->commit binding, and that binding is MOVABLE.
+
+    v1.2.0 is a LIGHTWEIGHT tag (no `^{}` peel in the advertisement), so upstream can move it
+    with `git tag -f` at any time. Every other check in this file keys off COMMIT, which is
+    immutable -- meaning if GSA-TTS retagged v1.2.0 onto different bytes, this probe would stay
+    green forever while "the v1.2 crosswalk" silently meant something else. The register's
+    probe_dims are "the v1.2 crosswalk CSV at a pinned commit"; without this test only the
+    "pinned commit" half is asserted and the "v1.2" half is taken on faith.
+    """
+    refs = fetch_tag_refs()
+    got = refs.get(f"refs/tags/{TAG}")
+    assert got == COMMIT, (
+        f"upstream tag {TAG} no longer resolves to the pinned commit.\n"
+        f"  expected {COMMIT}\n  got      {got}\n"
+        "Everything else in this probe still passes because it keys off the immutable commit. "
+        "Re-derive the obligation against the new v1.2 before trusting G007."
+    )
+    assert f"refs/tags/{TAG}^{{}}" not in refs, (
+        f"{TAG} is now an ANNOTATED tag; it was lightweight when pinned. The tag object was "
+        "replaced, so confirm the commit it peels to before trusting the pin."
+    )
 
 
 def test_entity_property_pairs_are_unique():
@@ -255,6 +308,7 @@ def main():
 
     checks = [
         test_artifact_exists_at_pinned_commit_with_expected_shape,
+        test_tag_v1_2_0_still_resolves_to_the_pinned_commit,
         test_entity_property_pairs_are_unique,
         test_distinct_entity_count_is_the_size_of_the_ontology_obligation,
         test_provenance_properties_are_present_on_every_entity,

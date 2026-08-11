@@ -64,13 +64,63 @@
  * not need it. That is the only difference between the two invocations.
  *
  * ---------------------------------------------------------------------------
+ * RUN IT UNDER BOTH MODULE RESOLUTIONS. This is not optional -- see finding 5.
+ * ---------------------------------------------------------------------------
+ * @osdk/client 2.56.0 ships TWO SEPARATE declaration trees and `moduleResolution: nodenext`
+ * picks between them by the nearest package.json `type` field:
+ *
+ *   CJS consumer (no `"type"` field)  -> build/cjs/Client-ClFX5q-o.d.cts   (bundled)
+ *   ESM consumer (`"type": "module"`) -> build/types/queries/types.d.ts    (per-file)
+ *
+ * A real Vite/React app is ESM and gets the second. `npm init -y` produces the first. Both
+ * were verified for this probe and both give identical results, but a later session that
+ * checks only one is checking a tree its app may never load. To exercise the ESM tree:
+ *
+ *   mkdir -p esm && printf '{"name":"esm-probe","type":"module","private":true}\n' > esm/package.json
+ *   cp test_optional_query_param.tsx esm/
+ *   npx tsc --ignoreConfig --noEmit --strict --target ES2022 --module NodeNext \
+ *       --moduleResolution nodenext --jsx react-jsx --skipLibCheck \
+ *       esm/test_optional_query_param.tsx
+ *
+ * Confirm the tree actually loaded with `--traceResolution | grep observable`.
+ *
+ * ---------------------------------------------------------------------------
  * HOW THIS FILE FAILS -- it is a tripwire, not a green rubber stamp.
  * ---------------------------------------------------------------------------
- * Every deviation is pinned with `@ts-expect-error`. If Palantir fixes the binding, each
- * pinned error stops occurring and tsc raises TS2578 "Unused '@ts-expect-error' directive"
- * -> non-zero exit. The `expectTrue<Equals<...>>()` assertions fail the same way if the
- * resolved types merely change shape. There is no branch of this file that passes silently
- * on a changed binding.
+ * Every deviation is pinned with an expect-error directive. If Palantir fixes the binding,
+ * each pinned error stops occurring and tsc raises TS2578 "Unused directive" -> non-zero
+ * exit. The `expectTrue<Equals<...>>()` assertions fail the same way if the resolved types
+ * merely change shape. There is no branch of this file that passes silently on a changed
+ * binding.
+ *
+ * THIS WAS MUTATION-TESTED, not assumed. Three INDEPENDENT fixes were each applied to the
+ * shipped declarations and each took this file from exit 0 to exit 1; every one was then
+ * reverted and exit 0 restored. A probe that has not been shown to fail is not evidence
+ * that anything passed.
+ *
+ *   MUTATION A -- the polarity fix in @osdk/client, applied to BOTH trees:
+ *     `T[K] extends { nullable: true } ? never : K`  ->  `? K : never`
+ *     10 errors: 6x TS2344 (A.1, A.2, B.1 x2, C.1 x2), 3x TS2578 (A.4, A.5, B.2),
+ *     1x TS2322 (B.3).  [counts verified by re-run; an earlier note here said 2x/7x]
+ *
+ *   MUTATION B -- fixing only the degenerate collapse, leaving polarity alone:
+ *     `PartialByNotStrict<T,K> = K extends keyof T ? ... : "never"`
+ *       -> `[K] extends [never] ? T : K extends keyof T ? ... : "never"`
+ *     3 errors: 2x TS2344 (A.1, A.2), 1x TS2578 (A.4).
+ *
+ *   MUTATION D -- the fix at the locus this probe actually names, in @osdk/react:
+ *     `params?: ... QueryParameterType<CompileTimeMetadata<Q>["parameters"]>`
+ *       -> `params?: ... Parameters<CompileTimeMetadata<Q>["signature"]>[0]`
+ *     5 errors: 1x TS2344 (A.2), 3x TS2578 (A.4, A.5, B.2), 1x TS2741 (B.3).
+ *     NOTE: in the CJS tree this declaration lives in
+ *     @osdk/react/build/cjs/public/experimental.d.cts, NOT in index.d.cts. Patching
+ *     build/types/new/useOsdkFunction.d.ts alone leaves a CJS consumer GREEN -- the exact
+ *     two-tree trap described above, re-encountered while mutating @osdk/react.
+ *
+ * The probe is therefore not overfitted to one mutation: it goes red whether the fix lands
+ * in @osdk/client's polarity, @osdk/client's degenerate-never fallback, or @osdk/react's
+ * choice of type. A.1 correctly stays GREEN under Mutation D, because A.1 pins @osdk/client
+ * and Mutation D only changes @osdk/react.
  *
  * ---------------------------------------------------------------------------
  * WHAT THIS PROBE ESTABLISHES, by running the real tsc against the real .d.ts files
@@ -152,12 +202,43 @@
  *    same package, opposite outcome -- the divergence is that useOsdkFunction reaches for
  *    `QueryParameterType` where the client reaches for `["signature"]`.
  *
+ * 5. THE TWO SHIPPED DECLARATION TREES AGREE. The definitions quoted in (1) and (2) are
+ *    from the ESM tree (build/types/...). The CJS bundle carries its own copies at
+ *    build/cjs/Client-ClFX5q-o.d.cts lines 16-17 and 41-49, alpha-renamed
+ *    (the actions-side `NotOptionalParams` becomes `NotOptionalParams$1`) but semantically
+ *    identical. This probe was compiled against BOTH and produced identical results, so the
+ *    finding does not depend on which tree a consumer resolves.
+ *
  * ---------------------------------------------------------------------------
  * WHAT THIS PROBE DOES NOT ESTABLISH (tie-break rule 3: no value the source does not state)
  * ---------------------------------------------------------------------------
- *   - Nothing about RUNTIME behavior. This is a type-level probe only. Whether the hook
- *     forwards an omitted parameter correctly over the wire is UNPROBED here; there is no
- *     Foundry enrollment in this environment to execute a real query against.
+ *   - No END-TO-END wire call. There is no Foundry enrollment in this environment, so no
+ *     real query was executed against a live ontology.
+ *
+ *     BUT the runtime half is NOT simply unknown. The shipped runtime JS was read AND
+ *     EXECUTED locally (no enrollment required), and it is PARAMETER-POLARITY-AGNOSTIC:
+ *
+ *       @osdk/client/build/esm/queries/applyQuery.js
+ *         parameters: params ? await remapQueryParams(params, client, ...) : {}
+ *
+ *       @osdk/client/.../function/FunctionParamsCanonicalizer.js
+ *         canonicalize(params) { if (params == null) return undefined; ... }
+ *
+ *     Executed directly: canonicalize(undefined) -> undefined (no throw); an undefined
+ *     `params` makes applyQuery send `parameters: {}`; and remapQueryParams accepts
+ *     {}, { q }, { r } and { r, q } alike, since it just walks Object.entries(params).
+ *     @osdk/react's useOsdkFunction passes `options.params` straight through to
+ *     observableClient.observeFunction with no reshaping.
+ *
+ *     CONSEQUENCE, and it is the practically important one: THE DEFECT IS ENTIRELY
+ *     TYPE-LEVEL. Nothing at runtime enforces the inverted polarity. A cast at the call
+ *     site is therefore a SOUND workaround, not merely a silencing one -- the value that
+ *     reaches the wire is the one you wrote. This is what makes the bug survivable.
+ *
+ *   - Nothing about how a REAL generated SDK's metadata is shaped. The fixtures here are
+ *     hand-written to the QueryDefinition contract in @osdk/api (verified: CompileTimeMetadata
+ *     <T> = NonNullable<T["__DefinitionMetadata"]>, and the fixtures resolve through the
+ *     QueryParameterType branch, not the Record<string, never> branch -- see A.1/A.2).
  *   - Nothing about `useOsdkFunctions` (plural). It reuses `UseOsdkFunctionOptions<Q>` but
  *     erases Q to `QueryDefinition<unknown>` in its array element type, which is a
  *     different resolution path and was not probed.

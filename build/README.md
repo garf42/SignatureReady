@@ -10,7 +10,7 @@ build/
 ├── nodes/*.md           20 nodes; only that node's agent reads its file
 ├── seams.jsonl          53 edges; 27 replay, 26 static
 ├── prefabs.jsonl        16 external dependencies, each with its probe
-├── gaps.md              34 open decisions, each with a volatility expiry
+├── gaps.md              35 open decisions, each with a volatility expiry
 └── ledger.jsonl         append-only, queried by node id, never read whole
 ```
 
@@ -20,18 +20,31 @@ build/
 python3 scripts/check.py build/ --phase 0
 ```
 
-Returns **16 violations, all of them `probed is false`.** That list is Phase −1's work order, not
-a defect in the plan. Nothing else fails: the cap holds, edge closure holds, every node has an
-oracle and a risk axis, every BINDING clause names a kill test, every demon carries a pending
-negative check.
+Returns **11 violations, all of them `probed is false`.** That list is what remains of Phase −1's
+work order, not a defect in the plan. Nothing else fails: the cap holds, edge closure holds, every
+node has an oracle and a risk axis, every BINDING clause names a kill test, every demon carries a
+pending negative check.
 
-Five of the sixteen carry evidence from the parallel build and need confirming rather than
-discovering. Two more — `palantir-mcp` and `foundry-cli-superrepo` — carry evidence from Palantir's
-documentation rather than from a probe, which is the weaker thing and is exactly why they are still
-probes. Nine have no prior evidence at all. **Probe `foundry-cli-superrepo` first** — it is the
-only one whose answer changes the topology of the build rather than the method inside one node. **Do not build a node whose prefabs are
-unprobed** — a library that misbehaves at this build's dimensions costs a node, and one that
-misbehaves silently costs the nodes above it too.
+**5 of the 16 prefabs are probed** — every one that this environment can reach. Each ran real code
+against a real published artifact at this build's dimensions, twice, and each was then attacked by
+an independent verifier. Four of the five changed a method and none changed a guarantee, which is
+what the order of work says should happen. Read the verdicts in `prefabs.jsonl`, not here.
+
+**11 are not probed, and none for want of trying.** Ten are blocked on one of two environment facts
+— G033, the network policy that refuses the three primary sources, and G034, the absent Foundry
+enrollment. The eleventh, `foundry-cli-superrepo`, ran its whole offline half and is blocked only on
+the enrollment; that half established the SuperRepo shape and proved the Ontology-as-code toolchain
+runs with no enrollment at all, so `n.ontology` is no longer waiting on it.
+
+The advice to **probe `foundry-cli-superrepo` first** stands and has been followed as far as it can
+be. The finding that matters for planning: the CLI is not on npm or PyPI in any form. It is served
+from each enrollment's own artifacts registry, so this probe cannot be delegated to an unenrolled
+machine or agent at all — which is a stronger constraint than "may not be available on this
+enrollment", and a constraint on *who* can run Phase −1 rather than on what it costs.
+
+**Do not build a node whose prefabs are unprobed** — a library that misbehaves at this build's
+dimensions costs a node, and one that misbehaves silently costs the nodes above it too.
+`scripts/packet.py` says so in the packet, so an agent does not have to remember.
 
 ## Packet assembly — the rule that keeps context flat
 

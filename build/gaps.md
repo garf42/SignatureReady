@@ -123,11 +123,20 @@ default; the entry records which decision and how reversible it is.
   the signature element would be its own precondition. Reversible: yes.
   Blocks: MR-2 on n.assembly.
 
-- G022 — node: n.surface — volatility: medium — last_reviewed: phase-0
+- G022 — node: n.surface — volatility: medium — last_reviewed: phase--1
   Whether @osdk/react-components can host the one repeated component — a constrained select plus
   a free-text justification plus evidence links, per row.
-  Assumed: hand-built. Reversible: yes, swapping in a prebuilt table is local.
-  Blocks: the repeated-component build.
+  PROBED at 0.48.0. The default STANDS — hand-built — but not for the reason this gap assumed.
+  ObjectTable *can* host all three; the disqualifier is that `objectType` is a required prop and
+  the component fetches its own rows from a live ontology, so it cannot be handed six local rows.
+  BaseTable, from the same subpath, is generic over any row type and does compile against our exact
+  shape with no ontology — so the choice was never binary. It still loses: the write-back is not
+  included, the dropdown is not bound to any Foundry value set so the value set is hand-maintained
+  either way, and the price is ~194 KB gzipped for one six-row checklist.
+  Reversible: yes, and the revisit conditions are assertions in the probe rather than a note here —
+  A7 goes red if `objectType` becomes optional, A9 if the table learns to write back, A8 if the
+  dropdown becomes type-bound.
+  Blocks: nothing now. The repeated-component build proceeds hand-built.
 
 - G023 — node: n.slot_register — volatility: high — last_reviewed: phase-0
   No rule enumerates which slots require a qualified professional. Interdisciplinary preparation is
@@ -238,3 +247,23 @@ default; the entry records which decision and how reversible it is.
   foundry.global-branching, foundry.egress, platform.model-access, aip.document-intelligence and
   aip.evals probes; G017, G019, G031 and G032; operating-loop step 8, which is what makes a node
   built rather than written; and therefore Phase 0 in its entirety.
+
+- G035 — node: n.det_core — volatility: high — last_reviewed: phase--1
+  A generated OSDK function is UNPINNED by default, so its invoked version is chosen server-side
+  per call. `fixedVersionQueryTypes` defaults to empty, `applyQuery` then sends no version, and the
+  server resolves the latest published version, which may be a pre-release. Established by
+  execution against the shipped client, not read from documentation.
+  This collides with n.det_core's guarantee that every result carries its algorithm version, and
+  with n.assembly's freshness clause: two identical deployments can invoke different function
+  versions with no artifact changing anywhere, and the version literal sitting in the generated
+  client is exactly the kind of plausible value that gets displayed as provenance while meaning
+  nothing.
+  Assumed: every function this build invokes is pinned explicitly, by carrying an `apiName:version`
+  suffix in its import list — which is the shipped rule, verified: a function is pinned if and only
+  if its entry carries that suffix, and the external-packages branch returns an empty list
+  unconditionally so those are always unpinned. Membership is an unvalidated string match, so a
+  namespace-qualified or misspelled entry silently unpins the function it was meant to pin, which
+  means the pin needs its own assertion rather than a convention.
+  Reversible: yes — pinning is a property of the import list.
+  Blocks: n.det_core's algorithm-version stamp, and n.surface/c1, which has been tightened to read
+  `isFixedVersion` and report unknown rather than the literal.

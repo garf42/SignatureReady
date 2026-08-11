@@ -14,7 +14,7 @@
  *
  * Probed here against @osdk/react 2.56.0 (npm `latest` on 2026-08-11), under
  * react 19.2.8 AND react 18.3.1, on node v22.22.2. Verdict: CONFIRMED for the
- * data hooks, REFUTED for useOsdkAction.
+ * data hooks BUT ONLY WHEN UNWRAPPED, REFUTED for useOsdkAction.
  *
  *   - useOsdkObjects  -> renderToString THROWS "Missing getServerSnapshot, ..."
  *   - useOsdkFunction -> renderToString THROWS "Missing getServerSnapshot, ..."
@@ -26,6 +26,27 @@
  * these three hooks" would be wrong. An action-only screen server-renders fine.
  * Assertion A9 below pins that, so the day useOsdkAction acquires an external
  * store this file also goes red.
+ *
+ * THE SUSPENSE CAVEAT — READ THIS BEFORE COSTING n.surface's SSR POSTURE
+ * ---------------------------------------------------------------------
+ * "renderToString throws for any data-bound screen" is TRUE ONLY WHEN THE
+ * SCREEN HAS NO <Suspense> BOUNDARY ABOVE IT. React classifies the missing
+ * getServerSnapshot as a RECOVERABLE error — that is what the error text's
+ * "Will revert to client rendering" means. A Suspense boundary catches it:
+ *
+ *   renderToString       + Suspense -> RENDERS the fallback plus a
+ *                                      "switched to client rendering" marker
+ *   renderToStaticMarkup + Suspense -> RENDERS the fallback, no throw at all
+ *   renderToPipeableStream + Suspense -> shell is FINE; the error is delivered
+ *                                      to onError, never to onShellError
+ *   renderToPipeableStream, NO Suspense -> onShellError; the shell dies
+ *
+ * Verified identical on react 18.3.1 and 19.2.8, so this is not a React-19
+ * artefact either. The practical consequence for n.surface: the page shell and
+ * every fallback DO server-render. What cannot server-render is the data
+ * CONTENT inside the boundary. That is the ordinary streaming-SSR posture, not
+ * a bar on SSR. A12/A13/A14 below pin this so the distinction cannot quietly
+ * rot back into "data-bound screens cannot be server-rendered".
  *
  * These assertions are written to FAIL when the limitation LIFTS. A red run is
  * therefore not necessarily bad news: read the failure line. If A6b/A7/A8 fail,
@@ -259,7 +280,7 @@ async function main(): Promise<void> {
   const INSTALLED_VERSION: string = osdkReactPkg.version;
 
   // -------------------------------------------------------------------------
-  // A1..A3  n.surface: "the module loads outside the bundler ... A clean
+  // A1..A2  n.surface: "the module loads outside the bundler ... A clean
   //         bundler build is not evidence." So load it under plain node.
   // -------------------------------------------------------------------------
 
@@ -310,7 +331,8 @@ async function main(): Promise<void> {
   }
 
   const react = requireFromDeps("react");
-  const { renderToString } = requireFromDeps("react-dom/server");
+  const { renderToString, renderToStaticMarkup, renderToPipeableStream } =
+    requireFromDeps("react-dom/server");
   h = react.createElement;
 
   // @osdk/client MUST be loaded through the same module system as @osdk/react,
@@ -431,15 +453,77 @@ async function main(): Promise<void> {
   const withProvider = (Comp: any) =>
     h(osdkReact.OsdkProvider, { client: offlineClient }, h(Comp));
 
+  // Same screen, but under a Suspense boundary — the shape any real streaming
+  // app uses. React demotes the missing-getServerSnapshot error to RECOVERABLE
+  // here, so this must be probed separately or the worst case gets mistaken for
+  // the only case.
+  const SUSPENDED_FALLBACK = "n.surface-fallback";
+  const withProviderSuspended = (Comp: any) =>
+    h(
+      osdkReact.OsdkProvider,
+      { client: offlineClient },
+      h(react.Suspense, { fallback: h("p", null, SUSPENDED_FALLBACK) }, h(Comp)),
+    );
+
+  const staticOutcome = (el: any): RenderOutcome => {
+    try {
+      return { threw: false, message: renderToStaticMarkup(el) };
+    } catch (e: any) {
+      return { threw: true, message: String(e?.message ?? e) };
+    }
+  };
+
   const battery = () => ({
     objects: renderOutcome(withProvider(ObjectsScreen)),
     fn: renderOutcome(withProvider(FunctionScreen)),
     action: renderOutcome(withProvider(ActionScreen)),
     pure: renderOutcome(h(PureScreen, { rows: [{ id: "1b.11(a)(46)(i)", status: "unsatisfied" }] })),
+    objectsSuspended: renderOutcome(withProviderSuspended(ObjectsScreen)),
+    fnSuspended: renderOutcome(withProviderSuspended(FunctionScreen)),
+    objectsSuspendedStatic: staticOutcome(withProviderSuspended(ObjectsScreen)),
   });
 
   const pass1 = battery();
   const pass2 = battery();
+
+  /**
+   * Streaming SSR. Resolves to which of React's two error channels the missing
+   * getServerSnapshot lands in: onShellError (the page is dead) or onError (the
+   * page lives, that subtree defers to the client). The difference is the whole
+   * architectural question for n.surface.
+   */
+  const streamOutcome = (el: any): Promise<{ shellDied: boolean; recoverable: string[]; html: string }> =>
+    new Promise((res) => {
+      const chunks: Buffer[] = [];
+      const recoverable: string[] = [];
+      let settled = false;
+      const done = (v: any) => {
+        if (!settled) {
+          settled = true;
+          res(v);
+        }
+      };
+      const stream = renderToPipeableStream(el, {
+        onError(e: any) {
+          recoverable.push(String(e?.message ?? e));
+        },
+        onShellError() {
+          done({ shellDied: true, recoverable, html: "" });
+        },
+        onShellReady() {
+          const sink: any = {
+            write: (c: any) => chunks.push(Buffer.from(c)),
+            end: () => done({ shellDied: false, recoverable, html: Buffer.concat(chunks).toString() }),
+            on() {}, once() {}, emit() {}, removeListener() {},
+          };
+          stream.pipe(sink);
+        },
+      });
+      setTimeout(() => done({ shellDied: false, recoverable, html: Buffer.concat(chunks).toString() }), 8000);
+    });
+
+  const streamSuspended = await streamOutcome(withProviderSuspended(ObjectsScreen));
+  const streamBare = await streamOutcome(withProvider(ObjectsScreen));
 
   assert(
     "A7",
@@ -460,7 +544,7 @@ async function main(): Promise<void> {
   // starts throwing, useOsdkAction has grown an external store.
   assert(
     "A9",
-    !pass1.action.threw,
+    !pass1.action.threw && pass1.action.message.includes("Record determination"),
     "useOsdkAction screen: renderToString SUCCEEDS (it uses no external store)",
     pass1.action.threw
       ? `NOW THROWS — useOsdkAction changed: ${pass1.action.message}`
@@ -473,6 +557,47 @@ async function main(): Promise<void> {
     !pass1.pure.threw && pass1.pure.message.includes("1b.11(a)(46)(i): unsatisfied"),
     "pure presentation renders server-side with its data supplied as values",
     pass1.pure.threw ? `THREW: ${pass1.pure.message}` : `rendered: ${pass1.pure.message}`,
+  );
+
+  // -------------------------------------------------------------------------
+  // A12..A14  THE SUSPENSE DIMENSION. A7/A8 above prove the UNWRAPPED case
+  //           throws. These prove the WRAPPED case does not — which is the
+  //           case n.surface will actually ship. Without these three, the
+  //           sentence "data-bound screens cannot be server-rendered" has no
+  //           kill test and is therefore a comment, not a finding.
+  // -------------------------------------------------------------------------
+  assert(
+    "A12",
+    !pass1.objectsSuspended.threw && pass1.objectsSuspended.message.includes(SUSPENDED_FALLBACK),
+    "under <Suspense>, renderToString does NOT throw — it emits the fallback",
+    pass1.objectsSuspended.threw
+      ? `THREW — a Suspense boundary no longer rescues the render: ${pass1.objectsSuspended.message}`
+      : `rendered fallback, error demoted to recoverable: ${pass1.objectsSuspended.message.slice(0, 120)}...`,
+  );
+
+  assert(
+    "A13",
+    !pass1.objectsSuspendedStatic.threw &&
+      pass1.objectsSuspendedStatic.message.includes(SUSPENDED_FALLBACK) &&
+      !pass1.fnSuspended.threw,
+    "under <Suspense>, renderToStaticMarkup renders the fallback cleanly; useOsdkFunction likewise",
+    pass1.objectsSuspendedStatic.threw
+      ? `renderToStaticMarkup THREW: ${pass1.objectsSuspendedStatic.message}`
+      : `renderToStaticMarkup -> ${pass1.objectsSuspendedStatic.message}; useOsdkFunction+Suspense threw=${pass1.fnSuspended.threw}`,
+  );
+
+  // The decisive one. Streaming SSR is what a real n.surface deployment uses.
+  const streamOk =
+    !streamSuspended.shellDied &&
+    streamSuspended.recoverable.some((m) => SSR_ERROR.test(m)) &&
+    streamBare.shellDied;
+  assert(
+    "A14",
+    streamOk,
+    "renderToPipeableStream: Suspense keeps the SHELL ALIVE (error -> onError); unwrapped kills it (-> onShellError)",
+    streamOk
+      ? `suspended: shell alive, ${streamSuspended.recoverable.length} recoverable error(s), ${streamSuspended.html.length} bytes emitted | unwrapped: shell died`
+      : `suspended.shellDied=${streamSuspended.shellDied} recoverable=${JSON.stringify(streamSuspended.recoverable)} | unwrapped.shellDied=${streamBare.shellDied} — THE STREAMING POSTURE CHANGED`,
   );
 
   // MR-2 flavour: same inputs, same outcomes, within one process.
@@ -528,6 +653,11 @@ async function main(): Promise<void> {
         exports: Object.keys(osdkReact).sort(),
         arity: arityRows,
         outcomes: pass1,
+        streaming: {
+          suspendedShellDied: streamSuspended.shellDied,
+          suspendedRecoverable: streamSuspended.recoverable,
+          bareShellDied: streamBare.shellDied,
+        },
       }),
     )
     .digest("hex");
@@ -548,9 +678,14 @@ async function main(): Promise<void> {
 
   console.log("=".repeat(78));
   console.log("PROBE GREEN — the limitation is still present, exactly as pinned.");
-  console.log("Data-bound screens (useOsdkObjects, useOsdkFunction) cannot be server-");
-  console.log("rendered. An action-only screen (useOsdkAction) can. Pure presentation");
-  console.log("with data supplied as values can.");
+  console.log("Data-bound screens (useOsdkObjects, useOsdkFunction) cannot server-render");
+  console.log("their DATA CONTENT: unwrapped, they throw and kill the shell. Under a");
+  console.log("<Suspense> boundary the shell and fallback DO server-render and React");
+  console.log("defers only that subtree to the client (A12/A13/A14). An action-only");
+  console.log("screen (useOsdkAction) server-renders fully. So does pure presentation");
+  console.log("with its data supplied as values.");
+  console.log("");
+  console.log("For n.surface: SSR is NOT barred. Wrap data regions in Suspense.");
   console.log("=".repeat(78));
 
   // createObservableClient leaves open handles; without this the process hangs.
