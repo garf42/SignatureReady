@@ -10,7 +10,7 @@ build/
 ├── nodes/*.md           20 nodes; only that node's agent reads its file
 ├── seams.jsonl          53 edges; 27 replay, 26 static
 ├── prefabs.jsonl        16 external dependencies, each with its probe
-├── gaps.md              32 open decisions, each with a volatility expiry
+├── gaps.md              34 open decisions, each with a volatility expiry
 └── ledger.jsonl         append-only, queried by node id, never read whole
 ```
 

@@ -296,9 +296,17 @@ interface mixedQuery extends QueryDefinition<MixedSignature> {
 declare const mixedQuery: mixedQuery;
 
 // --- B.1  The polarity is inverted: `q` (nullable, omittable per the ontology) is
-// REQUIRED, and `r` (non-nullable, genuinely required) is OPTIONAL. Asserted structurally
-// rather than by name so it does not depend on how tsc chooses to alias the type.
-expectTrue<Equals<QueryParameterType<MixedParams>, { q: string; r?: string }>>();
+// REQUIRED, and `r` (non-nullable, genuinely required) is OPTIONAL. Asserted per-key so
+// the assertion is about optionality itself, not about how tsc aliases the intersection.
+type MixedSlot = QueryParameterType<MixedParams>;
+
+/** The NULLABLE parameter is REQUIRED. Wrong. Goes red when the polarity is fixed. */
+expectTrue<Equals<IsOptionalKey<MixedSlot, "q">, false>>();
+/** The NON-NULLABLE parameter is OPTIONAL. Wrong. Goes red when the polarity is fixed. */
+expectTrue<Equals<IsOptionalKey<MixedSlot, "r">, true>>();
+/** Both are still strings -- this is a polarity flip, not a value-type change. */
+expectTrue<Equals<NonNullable<MixedSlot["q"]>, string>>();
+expectTrue<Equals<NonNullable<MixedSlot["r"]>, string>>();
 
 // --- B.2  Supplying only the genuinely-required param fails.
 // Pinned error, verbatim:
@@ -342,21 +350,17 @@ export function DirectClientPathIsCorrect(): void {
 // --- C.1  The direct path's params type is the generator-emitted signature's, and it has
 // the optionality the ontology declares. Pinning it makes the divergence machine-checkable
 // rather than a narrative claim.
-expectTrue<
-  Equals<
-    Parameters<NonNullable<mixedQuery["__DefinitionMetadata"]>["signature"]>[0],
-    { r: string; q?: string }
-  >
->();
+type GeneratedMixedSlot = Parameters<
+  NonNullable<mixedQuery["__DefinitionMetadata"]>["signature"]
+>[0];
 
-// The binding and the function disagree about the SAME parameter record. That disagreement
-// is this probe's finding, stated as a compilable assertion:
-expectTrue<
-  Equals<
-    Equals<
-      QueryParameterType<MixedParams>,
-      Parameters<NonNullable<mixedQuery["__DefinitionMetadata"]>["signature"]>[0]
-    >,
-    false
-  >
->();
+expectTrue<Equals<GeneratedMixedSlot, { r: string; q?: string }>>();
+expectTrue<Equals<IsOptionalKey<GeneratedMixedSlot, "q">, true>>();
+expectTrue<Equals<IsOptionalKey<GeneratedMixedSlot, "r">, false>>();
+
+// The binding and the function disagree about the SAME parameter record, and the
+// disagreement is total: NEITHER type is assignable to the other. That is this probe's
+// finding, stated as a compilable assertion. When the binding is fixed both directions
+// become `true` and both assertions go red.
+expectTrue<Equals<Assignable<GeneratedMixedSlot, MixedSlot>, false>>();
+expectTrue<Equals<Assignable<MixedSlot, GeneratedMixedSlot>, false>>();

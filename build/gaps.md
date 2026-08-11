@@ -210,3 +210,31 @@ default; the entry records which decision and how reversible it is.
   application connected to a Developer Console app through `connect_to_dev_console_app`.
   Reversible: yes, but not cheaply once code exists — which is why it is probed first.
   Blocks: G017, G019, G031, and the walking skeleton.
+
+- G033 — node: n.rule_corpus — volatility: high — last_reviewed: phase-0
+  The three primary regulatory sources are unreachable from the build environment. Its network
+  policy refuses `www.ecfr.gov`, `www.federalregister.gov` and `huggingface.co` at CONNECT with
+  403; `raw.githubusercontent.com`, `registry.npmjs.org` and `pypi.org` are open. This is an
+  environment setting, not a property of the sources.
+  Assumed: the constraint is the environment's and lifts by widening the network policy or by
+  running Phase −1 where egress is open. No source is substituted — Cornell/LII serves superseded
+  Part 1b text and is excluded at the retriever, and no regulatory value is transcribed from
+  anywhere but the primary source, per tie-break rules 1 and 3.
+  Reversible: yes, entirely — nothing has been built against a substitute.
+  Blocks: the ecfr.gov, federalregister.gov and PNNL/NEPATEC2.0 probes; therefore n.rule_corpus,
+  n.authority_ledger and n.precedent; therefore every node downstream of the corpus, which is all
+  of them. It also blocks authoring the n.element_sets, n.enumerations and n.ce_catalog fixtures,
+  because those are transcriptions of primary source text and inventing them is the exact demon
+  the tie-break order forbids.
+
+- G034 — node: n.ontology — volatility: high — last_reviewed: phase-0
+  No Foundry enrollment is reachable from the build environment: no credentials, no `foundry` CLI
+  on PATH, and no Palantir MCP server connected.
+  Assumed: the enrollment exists and is simply not attached here. G032 is therefore still open
+  rather than answered — "SuperRepo is unavailable" and "SuperRepo was never asked" are different
+  states, and only the second is true today.
+  Reversible: yes, and nothing has been committed to either topology.
+  Blocks: the palantir-mcp, foundry-cli-superrepo, functions-typescript-v2,
+  foundry.global-branching, foundry.egress, platform.model-access, aip.document-intelligence and
+  aip.evals probes; G017, G019, G031 and G032; operating-loop step 8, which is what makes a node
+  built rather than written; and therefore Phase 0 in its entirety.
