@@ -6,7 +6,7 @@ needs a node id and a phase.
 
 ```
 build/
-├── constitution.md      capped at 200 lines, read by every agent, every task (currently 146)
+├── constitution.md      capped at 200 lines, read by every agent, every task (currently 148)
 ├── nodes/*.md           20 nodes; only that node's agent reads its file
 ├── seams.jsonl          53 edges; 27 replay, 26 static
 ├── prefabs.jsonl        16 external dependencies, each with its probe
@@ -25,8 +25,10 @@ a defect in the plan. Nothing else fails: the cap holds, edge closure holds, eve
 oracle and a risk axis, every BINDING clause names a kill test, every demon carries a pending
 negative check.
 
-Six of the sixteen carry evidence from the parallel build and need confirming rather than
-discovering. Ten have no prior evidence at all. **Probe `foundry-cli-superrepo` first** — it is the
+Five of the sixteen carry evidence from the parallel build and need confirming rather than
+discovering. Two more — `palantir-mcp` and `foundry-cli-superrepo` — carry evidence from Palantir's
+documentation rather than from a probe, which is the weaker thing and is exactly why they are still
+probes. Nine have no prior evidence at all. **Probe `foundry-cli-superrepo` first** — it is the
 only one whose answer changes the topology of the build rather than the method inside one node. **Do not build a node whose prefabs are
 unprobed** — a library that misbehaves at this build's dimensions costs a node, and one that
 misbehaves silently costs the nodes above it too.
@@ -49,7 +51,7 @@ becomes an uncapped one, and it is the failure this structure exists to prevent.
 
 ## Order of work
 
-**Phase −1 — probes.** Run the fourteen. Record results in `prefabs.jsonl`. Several will change
+**Phase −1 — probes.** Run the sixteen. Record results in `prefabs.jsonl`. Several will change
 a node's method and none should change a node's guarantee; if a probe result changes a
 guarantee, that is a finding worth a ledger entry.
 

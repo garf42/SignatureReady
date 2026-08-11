@@ -33,5 +33,8 @@ jobs:
       - name: packet assembly must stay O(node degree)
         run: python3 tests/build/test_packet.py
 
+      - name: the plan's account of itself must match the registers
+        run: python3 tests/build/test_plan_prose.py
+
       - name: packet size accounting
         run: python3 scripts/packet.py build/ --stats-all
