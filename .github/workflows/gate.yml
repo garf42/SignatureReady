@@ -1,0 +1,37 @@
+name: gate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  structure:
+    name: contract-graph structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # scripts/check.py exits non-zero for as long as any prefab is unprobed,
+      # and that is correct — the gate is red on purpose until Phase -1 finishes.
+      # A permanently red check is a check nobody reads, so CI does not gate on
+      # its exit code directly. It gates on the assertion that the ONLY thing
+      # wrong is unprobed prefabs, which is what
+      # test_gate.py::test_baseline_is_red_only_on_unprobed_prefabs pins. This
+      # job therefore goes red the moment a structural property breaks, and stays
+      # green while Phase -1 is merely incomplete.
+      - name: report the gate
+        run: |
+          python3 scripts/check.py build/ --phase 0 || true
+
+      - name: structural invariants must hold
+        run: python3 tests/build/test_gate.py
+
+      - name: packet assembly must stay O(node degree)
+        run: python3 tests/build/test_packet.py
+
+      - name: packet size accounting
+        run: python3 scripts/packet.py build/ --stats-all
