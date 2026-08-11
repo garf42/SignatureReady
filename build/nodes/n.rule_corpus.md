@@ -45,9 +45,8 @@ independently from eCFR, covering 1b.3(g)(2), 1b.5(c), 1b.6(b), 1b.7(h), 1b.8(b)
   status: live
 
 ## clauses
-- [ADVISORY] origin: derived — Cornell/LII is excluded at the retriever, not at review time; a URL allowlist is cheaper than a reading (kill_test: `tests/rule_corpus/test_source_url_prefix_and_known_span`)
-- [BINDING] origin: specified — normalisation never overwrites `verbatim_text`; the source-grounded verifier compares against the unnormalised column or its substring guarantee is about a string nobody stored (kill_test: `tests/rule_corpus/test_verbatim_column_is_untransformed`)
-
+- [ADVISORY] origin: derived — Cornell/LII is excluded at the retriever, not at review time; a URL allowlist is cheaper than a reading (kill_test: `tests/rule_corpus/test_source_url_prefix_and_known_span`) (clause: n.rule_corpus/c1)
+- [BINDING] origin: specified — normalisation never overwrites `verbatim_text`; the source-grounded verifier compares against the unnormalised column or its substring guarantee is about a string nobody stored (kill_test: `tests/rule_corpus/test_verbatim_column_is_untransformed`) (clause: n.rule_corpus/c2)
 ## open gaps
 - G001 — paragraph citation uniqueness assumed, not verified. Assumed unique; a collision would
   silently merge two paragraphs.

@@ -84,10 +84,9 @@ map per document type, authored before any screen exists
   status: live
 
 ## clauses
-- [BINDING] origin: specified — never infer the invoked function version from the import list; read it out of the generated client, and write calls correct under every version the client might resolve to (kill_test: `tests/surface/test_import_version_matches_client_version`)
-- [BINDING] origin: derived — where a query documents an optional parameter and the React binding cannot express its absence, the cast carries a comment naming the mismatch; a bare cast hides an API mismatch, which is the defect and not the fix (kill_test: `tests/surface/test_optional_param_omitted_not_sentinelled`)
-- [ADVISORY] origin: derived — six regulatory processes, one component. Building six bespoke screens is the failure mode, and it looks like progress while it happens
-
+- [BINDING] origin: specified — never infer the invoked function version from the import list; read it out of the generated client, and write calls correct under every version the client might resolve to (kill_test: `tests/surface/test_import_version_matches_client_version`) (clause: n.surface/c1)
+- [BINDING] origin: derived — where a query documents an optional parameter and the React binding cannot express its absence, the cast carries a comment naming the mismatch; a bare cast hides an API mismatch, which is the defect and not the fix (kill_test: `tests/surface/test_optional_param_omitted_not_sentinelled`) (clause: n.surface/c2)
+- [ADVISORY] origin: derived — six regulatory processes, one component. Building six bespoke screens is the failure mode, and it looks like progress while it happens (clause: n.surface/c3)
 ## open gaps
 - G022 — `@osdk/react-components` ships `ObjectTable` and other prebuilt components. Unprobed at
   this build's shape. Assumed: hand-built list component. Reversible: yes — swapping in a prebuilt

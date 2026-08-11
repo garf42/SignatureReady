@@ -56,10 +56,9 @@ types with dispositions, authored from the rule text before the register exists
   status: live
 
 ## clauses
-- [BINDING] origin: specified — disposition is a property of the slot, frozen in the register, never a runtime choice by the node that consumes it (kill_test: `tests/slot_register/test_disposition_is_not_invocation_scoped`)
-- [BINDING] origin: specified — the disposition mix per document type is pinned; a change fails until re-pinned in the same commit with the diff recorded (kill_test: `tests/slot_register/test_disposition_mix_is_pinned`)
-- [ADVISORY] origin: derived — `expert_required` is a routing instruction, not an exemption. Every one names who, which artifact, and how long, or it is a shrug with a schema
-
+- [BINDING] origin: specified — disposition is a property of the slot, frozen in the register, never a runtime choice by the node that consumes it (kill_test: `tests/slot_register/test_disposition_is_not_invocation_scoped`) (clause: n.slot_register/c1)
+- [BINDING] origin: specified — the disposition mix per document type is pinned; a change fails until re-pinned in the same commit with the diff recorded (kill_test: `tests/slot_register/test_disposition_mix_is_pinned`) (clause: n.slot_register/c2)
+- [ADVISORY] origin: derived — `expert_required` is a routing instruction, not an exemption. Every one names who, which artifact, and how long, or it is a shrug with a schema (clause: n.slot_register/c3)
 ## open gaps
 - G023 — no rule enumerates which slots require a qualified professional. 1b.9(g) requires
   interdisciplinary preparation at the responsible official's sole discretion and names no list.

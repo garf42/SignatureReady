@@ -57,10 +57,9 @@ an action alternative, one carried into detailed analysis, with the expected tra
   status: live
 
 ## clauses
-- [BINDING] origin: specified — an issue is a cause-effect relation with both sides named to a canonical path (kill_test: `tests/issue_register/test_both_sides_named`)
-- [BINDING] origin: specified — design criterion and mitigation are different objects with different creators, timing, host documents and citation duties; conflating them puts a design criterion in a finding without authority, or a mitigation in the proposed action where it escapes the monitoring requirement (kill_test: `tests/issue_register/test_criterion_and_mitigation_are_distinct_types`)
-- [ADVISORY] origin: derived — the modification log looks like bookkeeping and is the sole input to a required narrative; it is written as the modification happens or it is not written
-
+- [BINDING] origin: specified — an issue is a cause-effect relation with both sides named to a canonical path (kill_test: `tests/issue_register/test_both_sides_named`) (clause: n.issue_register/c1)
+- [BINDING] origin: specified — design criterion and mitigation are different objects with different creators, timing, host documents and citation duties; conflating them puts a design criterion in a finding without authority, or a mitigation in the proposed action where it escapes the monitoring requirement (kill_test: `tests/issue_register/test_criterion_and_mitigation_are_distinct_types`) (clause: n.issue_register/c2)
+- [ADVISORY] origin: derived — the modification log looks like bookkeeping and is the sole input to a required narrative; it is written as the modification happens or it is not written (clause: n.issue_register/c3)
 ## open gaps
 - G025 — whether one issue may carry two dispositions simultaneously. Assumed: yes, many-to-many,
   because supplementing the analysis and modifying the action are not exclusive. Reversible: yes.

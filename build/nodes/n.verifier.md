@@ -51,10 +51,9 @@ variants: all matching, one mismatched, one unresolvable, one path absent
   status: live
 
 ## clauses
-- [BINDING] origin: specified — the kind is declared by the producer and never inferred by the verifier (kill_test: `tests/verifier/test_undeclared_kind_is_refused`)
-- [BINDING] origin: specified — a claim is never displayed with a warning attached; it passes or it does not render (kill_test: `tests/verifier/test_no_render_with_warning`)
-- [ADVISORY] origin: derived — a source is immutable and ontology state is not. A source-grounded claim verified once stays verified; a state-grounded claim is a statement about the present made from the past, which is why n.assembly re-verifies at emission
-
+- [BINDING] origin: specified — the kind is declared by the producer and never inferred by the verifier (kill_test: `tests/verifier/test_undeclared_kind_is_refused`) (clause: n.verifier/c1)
+- [BINDING] origin: specified — a claim is never displayed with a warning attached; it passes or it does not render (kill_test: `tests/verifier/test_no_render_with_warning`) (clause: n.verifier/c2)
+- [ADVISORY] origin: derived — a source is immutable and ontology state is not. A source-grounded claim verified once stays verified; a state-grounded claim is a statement about the present made from the past, which is why n.assembly re-verifies at emission (clause: n.verifier/c3)
 ## open gaps
 - G018 — what "literal substring" admits: whitespace collapse, unicode dash folding, case.
   Assumed: byte-exact, no normalisation, until a declared normalisation rule exists.

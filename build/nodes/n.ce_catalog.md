@@ -50,9 +50,8 @@ fixture: `fixtures/ce_catalog/nine_capped_categories.json` — 47d, 35d, 36d, 37
   status: live
 
 ## clauses
-- [BINDING] origin: specified — comparison strictness is parsed and stored, never inferred (kill_test: `tests/ce_catalog/test_strictness_round_trips_from_span`)
-- [ADVISORY] origin: derived — 30d carries a status flag in the rule text itself; model it as present-with-a-flag. Silently including or excluding it are both defects (kill_test: `tests/ce_catalog/test_flagged_category_is_present_and_flagged`)
-
+- [BINDING] origin: specified — comparison strictness is parsed and stored, never inferred (kill_test: `tests/ce_catalog/test_strictness_round_trips_from_span`) (clause: n.ce_catalog/c1)
+- [ADVISORY] origin: derived — 30d carries a status flag in the rule text itself; model it as present-with-a-flag. Silently including or excluding it are both defects (kill_test: `tests/ce_catalog/test_flagged_category_is_present_and_flagged`) (clause: n.ce_catalog/c2)
 ## open gaps
 - G015 — the full 1b.4(c) list does not appear in the transcription. Assumed: n.rule_corpus
   supplies it. Until then the catalogue is emitted `provisional` and the interface says so —

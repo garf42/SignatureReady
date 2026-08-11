@@ -73,10 +73,9 @@ are what the intent predicate rests on.
   status: live
 
 ## clauses
-- [BINDING] origin: specified — every regulatory slot requiring a justification has a required grounding kind declared **in the slot**, not chosen per invocation; a descriptive sentence about this project cannot be source-grounded because the sources predate the project (kill_test: `tests/drafter/test_descriptive_slots_are_state_grounded`)
-- [BINDING] origin: specified — the disposition boundary is enforced at this node's entry point, so a drafted claim can never occupy a record-supplied or expert-required slot (kill_test: `tests/drafter/test_refuses_non_drafted_dispositions`)
-- [BINDING] origin: specified — the highest-value output of the search drafter is sometimes "you do not need to build this"; a prior-coverage search that never returns that answer is not searching (kill_test: `tests/drafter/test_prior_coverage_can_return_no_new_analysis`)
-
+- [BINDING] origin: specified — every regulatory slot requiring a justification has a required grounding kind declared **in the slot**, not chosen per invocation; a descriptive sentence about this project cannot be source-grounded because the sources predate the project (kill_test: `tests/drafter/test_descriptive_slots_are_state_grounded`) (clause: n.drafter/c1)
+- [BINDING] origin: specified — the disposition boundary is enforced at this node's entry point, so a drafted claim can never occupy a record-supplied or expert-required slot (kill_test: `tests/drafter/test_refuses_non_drafted_dispositions`) (clause: n.drafter/c2)
+- [BINDING] origin: specified — the highest-value output of the search drafter is sometimes "you do not need to build this"; a prior-coverage search that never returns that answer is not searching (kill_test: `tests/drafter/test_prior_coverage_can_return_no_new_analysis`) (clause: n.drafter/c3)
 ## open gaps
 - G019 — Palantir MCP exposes no AIP Logic tool, so the drafter's host surface is either AIP Logic
   configured by hand or a function calling a model through the platform's model access.

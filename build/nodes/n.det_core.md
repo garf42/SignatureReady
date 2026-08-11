@@ -59,10 +59,9 @@ below and one above, each carrying its citation. A case resting on an unverified
   status: live
 
 ## clauses
-- [BINDING] origin: specified — a T3 reachability failure blocks delivery of the whole build, not just this node; the assertion is reachability from entry points, which is checkable, rather than absence from the repository, which the functions template makes impossible (kill_test: `tests/det_core/test_reachability_pin`)
-- [BINDING] origin: derived — accepting a template upgrade requires re-running the reachability assertion, reading the diff, and re-pinning in the same commit (kill_test: `tests/det_core/test_reachability_pin`)
-- [ADVISORY] origin: derived — the objection-process reviewing-officer derivation is an EA/EIS-branch function and is not needed on the categorical-exclusion branch at any phase
-
+- [BINDING] origin: specified — a T3 reachability failure blocks delivery of the whole build, not just this node; the assertion is reachability from entry points, which is checkable, rather than absence from the repository, which the functions template makes impossible (kill_test: `tests/det_core/test_reachability_pin`) (clause: n.det_core/c1)
+- [BINDING] origin: derived — accepting a template upgrade requires re-running the reachability assertion, reading the diff, and re-pinning in the same commit (kill_test: `tests/det_core/test_reachability_pin`) (clause: n.det_core/c2)
+- [ADVISORY] origin: derived — the objection-process reviewing-officer derivation is an EA/EIS-branch function and is not needed on the categorical-exclusion branch at any phase (clause: n.det_core/c3)
 ## open gaps
 - G005 — calendar basis for the +1yr EA and +2yr EIS deadline arithmetic is not declared in the
   statute text. Assumed: calendar year from the trigger date. Fixture authored non-asserting.

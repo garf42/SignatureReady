@@ -88,12 +88,11 @@ and they are what protects a user who cannot evaluate the answer.
   status: live
 
 ## clauses
-- [BINDING] origin: specified — a holder is emitted only with an attestation naming document, page and role (kill_test: `tests/expert_directory/test_holder_requires_attestation`)
-- [BINDING] origin: specified — a contact channel carries published-or-opted-in provenance or it is not stored, in any environment (kill_test: `tests/expert_directory/test_channel_requires_published_or_optin_provenance`)
-- [BINDING] origin: specified — track record is attested facts; no aggregate rating is computed, stored or displayed (kill_test: `tests/expert_directory/test_no_aggregate_score_is_emitted`)
-- [BINDING] origin: derived — the request package carries the element citations the artifact must address, so the returning artifact can be coverage-gap checked against the same list it was requested against (kill_test: `tests/expert_directory/test_request_carries_element_citations`)
-- [ADVISORY] origin: derived — for several disciplines the right answer is a cooperating-agency designation rather than a procurement, and the statutory path has shall-invite and shall-accept branches a county officer has no reason to know exist
-
+- [BINDING] origin: specified — a holder is emitted only with an attestation naming document, page and role (kill_test: `tests/expert_directory/test_holder_requires_attestation`) (clause: n.expert_directory/c1)
+- [BINDING] origin: specified — a contact channel carries published-or-opted-in provenance or it is not stored, in any environment (kill_test: `tests/expert_directory/test_channel_requires_published_or_optin_provenance`) (clause: n.expert_directory/c2)
+- [BINDING] origin: specified — track record is attested facts; no aggregate rating is computed, stored or displayed (kill_test: `tests/expert_directory/test_no_aggregate_score_is_emitted`) (clause: n.expert_directory/c3)
+- [BINDING] origin: derived — the request package carries the element citations the artifact must address, so the returning artifact can be coverage-gap checked against the same list it was requested against (kill_test: `tests/expert_directory/test_request_carries_element_citations`) (clause: n.expert_directory/c4)
+- [ADVISORY] origin: derived — for several disciplines the right answer is a cooperating-agency designation rather than a procurement, and the statutory path has shall-invite and shall-accept branches a county officer has no reason to know exist (clause: n.expert_directory/c5)
 ## open gaps
 - G028 — whether preparer and consulted-persons sections are consistently present in the corpus and
   extractable at useful precision. Assumed: present in a minority; the node reports its extraction

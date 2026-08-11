@@ -65,10 +65,9 @@ overlapping-units fixture, authored before the ontology exists
   status: live
 
 ## clauses
-- [BINDING] origin: specified — resolution is against a named path, never a search for a matching value; a verifier that accepts any path whose value happens to match would pass a sentence true of one reading and false of the other (kill_test: `tests/ontology/test_two_readings_have_two_paths`)
-- [BINDING] origin: specified — addressability is a property of shape and cannot be retrofitted; a path index emitted after the types exist is a description, not a constraint (kill_test: `tests/ontology/test_path_index_is_emitted_with_the_types`)
-- [ADVISORY] origin: derived — the knowledge-capture types hold no regulatory content and satisfy no element set; they go in here because they are the one cluster that cannot be added later without touching everything above
-
+- [BINDING] origin: specified — resolution is against a named path, never a search for a matching value; a verifier that accepts any path whose value happens to match would pass a sentence true of one reading and false of the other (kill_test: `tests/ontology/test_two_readings_have_two_paths`) (clause: n.ontology/c1)
+- [BINDING] origin: specified — addressability is a property of shape and cannot be retrofitted; a path index emitted after the types exist is a description, not a constraint (kill_test: `tests/ontology/test_path_index_is_emitted_with_the_types`) (clause: n.ontology/c2)
+- [ADVISORY] origin: derived — the knowledge-capture types hold no regulatory content and satisfy no element set; they go in here because they are the one cluster that cannot be added later without touching everything above (clause: n.ontology/c3)
 ## open gaps
 - G007 — PIC crosswalk (entity, property) uniqueness unverified. Assumed unique.
 - G016 — Palantir MCP creates and updates object, link and action types **on a branch** but

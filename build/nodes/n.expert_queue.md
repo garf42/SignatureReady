@@ -72,10 +72,9 @@ with differing lead times, one artifact received, one privilege-marked
   status: live
 
 ## clauses
-- [BINDING] origin: specified — an expert-required slot accepts only an uploaded artifact; AI is restricted to coverage-gap checking and its output is never slot content (kill_test: `tests/expert_queue/test_expert_slot_accepts_only_an_artifact`)
-- [BINDING] origin: specified — routing targets a position or discipline, never a person (kill_test: `tests/expert_queue/test_routing_target_is_a_position`)
-- [ADVISORY] origin: derived — this node is what makes the product honest for the environmental assessment and impact statement branches: the tail of work a model cannot do is not hidden, it is named, routed, and dated
-
+- [BINDING] origin: specified — an expert-required slot accepts only an uploaded artifact; AI is restricted to coverage-gap checking and its output is never slot content (kill_test: `tests/expert_queue/test_expert_slot_accepts_only_an_artifact`) (clause: n.expert_queue/c1)
+- [BINDING] origin: specified — routing targets a position or discipline, never a person (kill_test: `tests/expert_queue/test_routing_target_is_a_position`) (clause: n.expert_queue/c2)
+- [ADVISORY] origin: derived — this node is what makes the product honest for the environmental assessment and impact statement branches: the tail of work a model cannot do is not hidden, it is named, routed, and dated (clause: n.expert_queue/c3)
 ## open gaps
 - G027 — whether the critical path violates the rule against stating expected durations.
   Assumed: permitted, because it is a sum of lead times each supplied by the expert who will do the

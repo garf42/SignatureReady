@@ -88,10 +88,9 @@ the expected manifest, authored before the assembler exists
   status: live
 
 ## clauses
-- [BINDING] origin: specified — a document that cannot be produced because the categorical exclusion is unavailable is the product working; a document that cannot be produced because an element has no reachable affordance is not. The manifest distinguishes them by naming the finding and the resource that caused the refusal (kill_test: `tests/assembly/test_correct_refusal_names_its_cause`)
-- [BINDING] origin: derived — a stale value renders identically to a fresh one, so the reader cannot tell, and the reader who cannot tell is the official signing the document (kill_test: `tests/assembly/test_state_claim_reverified_at_emission`)
-- [ADVISORY] origin: derived — one rule covers the stale claim and the stale cached verdict, because two rules for one hazard is how the hazard survives: each is obeyed in its own layer and the gap between them is where the failure lives
-
+- [BINDING] origin: specified — a document that cannot be produced because the categorical exclusion is unavailable is the product working; a document that cannot be produced because an element has no reachable affordance is not. The manifest distinguishes them by naming the finding and the resource that caused the refusal (kill_test: `tests/assembly/test_correct_refusal_names_its_cause`) (clause: n.assembly/c1)
+- [BINDING] origin: derived — a stale value renders identically to a fresh one, so the reader cannot tell, and the reader who cannot tell is the official signing the document (kill_test: `tests/assembly/test_state_claim_reverified_at_emission`) (clause: n.assembly/c2)
+- [ADVISORY] origin: derived — one rule covers the stale claim and the stale cached verdict, because two rules for one hazard is how the hazard survives: each is obeyed in its own layer and the gap between them is where the failure lives (clause: n.assembly/c3)
 ## open gaps
 - G021 — whether a `not_applicable` bucket is the right third state, or whether the rule admits
   only satisfied and unsatisfied. Assumed: three buckets, because a category never adopted could

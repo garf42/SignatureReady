@@ -57,10 +57,9 @@ the explicit-absence property are the checkable part and are what the document r
   status: live
 
 ## clauses
-- [BINDING] origin: specified — three prongs are three human judgments; a single sameness verdict is not emitted at any confidence (kill_test: `tests/prior_coverage/test_prongs_are_unresolved_human_inputs`)
-- [BINDING] origin: specified — the two reuse tiers are surfaced as distinct affordances with distinct requirements (kill_test: `tests/prior_coverage/test_two_reuse_tiers_are_distinct`)
-- [ADVISORY] origin: derived — the highest-value output of this node is sometimes "you do not need to build this," and a node that can never return that is not searching
-
+- [BINDING] origin: specified — three prongs are three human judgments; a single sameness verdict is not emitted at any confidence (kill_test: `tests/prior_coverage/test_prongs_are_unresolved_human_inputs`) (clause: n.prior_coverage/c1)
+- [BINDING] origin: specified — the two reuse tiers are surfaced as distinct affordances with distinct requirements (kill_test: `tests/prior_coverage/test_two_reuse_tiers_are_distinct`) (clause: n.prior_coverage/c2)
+- [ADVISORY] origin: derived — the highest-value output of this node is sometimes "you do not need to build this," and a node that can never return that is not searching (clause: n.prior_coverage/c3)
 ## open gaps
 - G024 — substantial sameness has no numeric test in the rule. Assumed: qualitative human judgment
   against computed evidence, never a score, because a score invites a threshold and a threshold is

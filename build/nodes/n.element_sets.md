@@ -47,9 +47,8 @@ with its citation, transcribed independently of the extractor
   status: live
 
 ## clauses
-- [BINDING] origin: specified — an element's identity is opaque and stable; ordinal is a display property, never an address (kill_test: `tests/element_sets/test_id_survives_insertion`)
-- [ADVISORY] origin: derived — the register's seven-requirement reading of the FANEC's six elements is a requirements artifact; the rule has six elements and this node emits six (kill_test: `tests/element_sets/test_frozen_counts`)
-
+- [BINDING] origin: specified — an element's identity is opaque and stable; ordinal is a display property, never an address (kill_test: `tests/element_sets/test_id_survives_insertion`) (clause: n.element_sets/c1)
+- [ADVISORY] origin: derived — the register's seven-requirement reading of the FANEC's six elements is a requirements artifact; the rule has six elements and this node emits six (kill_test: `tests/element_sets/test_frozen_counts`) (clause: n.element_sets/c2)
 ## open gaps
 - G013 — frozen element counts are transcription-derived and unverified against eCFR.
   Assumed correct. Closed by MR-1 on n.rule_corpus round-tripping the five citations.

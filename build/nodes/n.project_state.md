@@ -52,9 +52,8 @@ unit carrying two overlapping treatments so the two readings provably diverge
   status: live
 
 ## clauses
-- [BINDING] origin: specified — the covered portion has two readings and no default; election is a recorded human input (kill_test: `tests/project_state/test_neither_reading_is_marked_preferred`)
-- [BINDING] origin: derived — every prohibition input is an ontology property; a named constant standing in for an absent property is a defect that produces a correct answer today (kill_test: `tests/project_state/test_no_constant_stands_in_for_a_property`)
-
+- [BINDING] origin: specified — the covered portion has two readings and no default; election is a recorded human input (kill_test: `tests/project_state/test_neither_reading_is_marked_preferred`) (clause: n.project_state/c1)
+- [BINDING] origin: derived — every prohibition input is an ontology property; a named constant standing in for an absent property is a defect that produces a correct answer today (kill_test: `tests/project_state/test_no_constant_stands_in_for_a_property`) (clause: n.project_state/c2)
 ## open gaps
 - G009 — fsgeodata feature id uniqueness unverified. Assumed unique per layer.
 - G010 — projection and linear unit per layer must be read, not assumed. Assumed: read at

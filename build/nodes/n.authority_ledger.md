@@ -37,8 +37,7 @@ lineage of Part 1b, hand-constructed
   status: live
 
 ## clauses
-- [BINDING] origin: specified — absence of evidence is `unknown`; only an affirmative source sets a flag `false` (kill_test: `tests/authority_ledger/test_absent_evidence_yields_unknown_not_false`)
-
+- [BINDING] origin: specified — absence of evidence is `unknown`; only an affirmative source sets a flag `false` (kill_test: `tests/authority_ledger/test_absent_evidence_yields_unknown_not_false`) (clause: n.authority_ledger/c1)
 ## open gaps
 - G002 — re-check cadence for authority currency. Assumed: on every build of this node, with the
   retrieval timestamp carried forward. No interval is invented.

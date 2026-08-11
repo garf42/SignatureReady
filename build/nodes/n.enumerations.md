@@ -39,8 +39,7 @@ transcribed independently of the extractor
   status: live
 
 ## clauses
-- [BINDING] origin: specified — closure is a function of the introducing clause alone; no set is classified from its members (kill_test: `tests/enumerations/test_missing_clause_yields_undetermined`)
-
+- [BINDING] origin: specified — closure is a function of the introducing clause alone; no set is classified from its members (kill_test: `tests/enumerations/test_missing_clause_yields_undetermined`) (clause: n.enumerations/c1)
 ## open gaps
 - G014 — the introducing clause for three sets is reported absent from the transcription
   (1b.7(f)(2)(vi), 1b.9(c), 1b.7(f)(2)). Assumed `undetermined` until n.rule_corpus supplies them.

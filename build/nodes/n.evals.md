@@ -47,9 +47,8 @@ MRs below. A measurement node's oracle is the behaviour of its own arithmetic on
   status: live
 
 ## clauses
-- [BINDING] origin: specified — attempt, through the signal path, to weaken a verifier, relax a constrained value set, and lower an element requirement. All three refused; this is a prohibition test, not a reporting one (kill_test: `tests/evals/test_signal_path_cannot_weaken_a_gate`)
-- [ADVISORY] origin: derived — acceptance rate alone rewards bland, unfalsifiable sentences; median edit distance is the counterweight and the two are read together or neither is read
-
+- [BINDING] origin: specified — attempt, through the signal path, to weaken a verifier, relax a constrained value set, and lower an element requirement. All three refused; this is a prohibition test, not a reporting one (kill_test: `tests/evals/test_signal_path_cannot_weaken_a_gate`) (clause: n.evals/c1)
+- [ADVISORY] origin: derived — acceptance rate alone rewards bland, unfalsifiable sentences; median edit distance is the counterweight and the two are read together or neither is read (clause: n.evals/c2)
 ## open gaps
 - G020 — the signal hierarchy's authority ordering is asserted, not measured. Assumed: post-
   implementation reality above external challenge above signature above edits and rejections.

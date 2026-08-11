@@ -39,9 +39,8 @@ the checkable part and the only part downstream depends on.
   status: live
 
 ## clauses
-- [BINDING] origin: specified — the substring check is against the named page, not the document; page anchoring is what makes a citation checkable (kill_test: `tests/precedent/test_chunk_is_substring_of_its_named_page`)
-- [ADVISORY] origin: derived — this node ingests a filtered slice, never the whole corpus; the filter's selectivity is a reported number so a silently empty filter is visible
-
+- [BINDING] origin: specified — the substring check is against the named page, not the document; page anchoring is what makes a citation checkable (kill_test: `tests/precedent/test_chunk_is_substring_of_its_named_page`) (clause: n.precedent/c1)
+- [ADVISORY] origin: derived — this node ingests a filtered slice, never the whole corpus; the filter's selectivity is a reported number so a silently empty filter is visible (clause: n.precedent/c2)
 ## open gaps
 - G011 — src.nepatec row grain unverified. Assumed one row per document with a page-level text
   field. Reversible: yes — a per-chunk source changes the reader, not the guarantee.

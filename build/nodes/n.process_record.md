@@ -64,10 +64,9 @@ to issue rows, one errata sheet with all eight fields, one comment set grouped t
   status: live
 
 ## clauses
-- [BINDING] origin: specified — no model is reachable from the certifying-statement or errata path; both are fixed text plus computed values (kill_test: `tests/process_record/test_no_model_reachable_from_certifying_path`)
-- [BINDING] origin: specified — readiness-to-start is a dated human decision surfaced explicitly, never derived from the state of the work (kill_test: `tests/process_record/test_readiness_is_a_recorded_act`)
-- [ADVISORY] origin: derived — never state an expected duration; observed durations for the same branch span eight months to nearly three years. Elapsed and remaining against statutory deadlines only
-
+- [BINDING] origin: specified — no model is reachable from the certifying-statement or errata path; both are fixed text plus computed values (kill_test: `tests/process_record/test_no_model_reachable_from_certifying_path`) (clause: n.process_record/c1)
+- [BINDING] origin: specified — readiness-to-start is a dated human decision surfaced explicitly, never derived from the state of the work (kill_test: `tests/process_record/test_readiness_is_a_recorded_act`) (clause: n.process_record/c2)
+- [ADVISORY] origin: derived — never state an expected duration; observed durations for the same branch span eight months to nearly three years. Elapsed and remaining against statutory deadlines only (clause: n.process_record/c3)
 ## open gaps
 - G026 — the pre-decisional objection process does not apply to categorical exclusions but does
   apply on the EA and EIS branches, and its text has been under revision.
