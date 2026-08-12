@@ -57,8 +57,16 @@ inherit its claims.
   It **cannot write ontology data** (G016) — data goes through datasets plus a pipeline, or Actions.
   *Ontology MCP (OMCP)* is a different product for ontology *consumers*; it is not an npm package
   and we do not need it.
-- **SuperRepo** — available, contrary to the register's hedge. See G032. The CLI is served from
-  `ri.foundry.cli.artifacts.repository` as a 179 MB x86-64 ELF binary. **Not yet executed.**
+- **SuperRepo** — available, contrary to the register's hedge. See G032. The CLI is **already
+  installed** at `~/.local/bin/foundry` — 179,411,392 bytes, x86-64 ELF,
+  sha256 `062130e9041a6195245a497e8ae726484cd0c1a7280562a3ea9099b651ed9318`, fetched from
+  `ri.foundry.cli.artifacts.repository` on 2026-08-12. It has **never been executed** and
+  `foundry login` has **never been run**, so no subcommand and no `minCliVersion` is confirmed.
+  It was placed by hand rather than by the vendor installer, deliberately: that installer also
+  appends a PATH export to `~/.bashrc` and runs `foundry login --non-interactive`, and neither
+  belongs in a probe. `~/.local/bin` may not be on PATH — invoke it by full path.
+  Authenticate with `foundry login refresh`, which is a browser OAuth flow and needs no static
+  token. Re-downloading it would need a credential, so do not delete it casually.
 - **GitHub** — `gh` authenticated as `garf42`, scopes `gist, read:org, repo, workflow`.
   `git push` works. Remote `github.com/garf42/SignatureReady`.
 - **Egress** — open to eCFR, Federal Register, HuggingFace, npm, raw.githubusercontent.
@@ -77,6 +85,15 @@ There are **two independent credentials**, and they fail independently:
 `/multipass/api/me` returns 200 for a good token, and `Default:Unauthorized` with
 `parameters.error = EXPIRED` for a dead one. Use `scripts/foundry_api.sh` — it never prints the
 token.
+
+**Expect source 1 to be dead.** The `FOUNDRY_TOKEN` in `~/.mcp.json` is the expired one, and the
+short-lived user token that answered on 2026-08-12 was deactivated deliberately after the CLI was
+fetched. So `scripts/foundry_api.sh` will fail until a credential exists, and that is the correct
+state, not a regression. **Do not ask the operator for a pasted user token** — prefer, in order:
+the in-platform SuperRepo flow at `<stack>/workspace/code/superrepo`, which provisions a
+restricted install token; then `foundry login refresh`, a browser OAuth flow. Neither needs a
+long-lived secret in a config file, and MCP is unaffected by all of this because it holds its own
+credential.
 
 `palantir-mcp` on npm is only a **wrapper**; it downloads and runs `@palantir/mcp` from the
 enrollment's own artifacts registry (`ri.artifacts.repository.discovered.foundry-mcp`). That is the
