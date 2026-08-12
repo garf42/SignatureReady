@@ -209,16 +209,30 @@ default; the entry records which decision and how reversible it is.
   defensible, not a coincidence to lean on. Reversible: yes — pipeline support arriving collapses
   two repositories into one and changes no guarantee. Blocks: the walking skeleton's repo layout.
 
-- G032 — node: n.ontology — volatility: high — last_reviewed: phase-0
-  Whether SuperRepo is enabled on this training enrollment at all. It is beta as of the week of
-  2026-08-03 and the documentation states plainly it may not be available.
-  Assumed: available. **Probe this before any other probe** — it is the only gap whose answer
-  changes the topology of the whole build rather than the method inside one node.
-  Fallback, fully supported and fully MCP-driven: ontology types through the MCP ontology tools on
-  a branch, a hand-created TypeScript Functions repository cloned locally, and the React
-  application connected to a Developer Console app through `connect_to_dev_console_app`.
-  Reversible: yes, but not cheaply once code exists — which is why it is probed first.
-  Blocks: G017, G019, G031, and the walking skeleton.
+- G032 — node: n.ontology — volatility: high — last_reviewed: phase--1 — ANSWERED
+  Was: whether SuperRepo is enabled on this training enrollment at all, it being beta as of the
+  week of 2026-08-03 with documentation stating plainly it may not be available. The recorded
+  assumption — available — held, and it now rests on something stronger than the documentation's
+  hedge.
+  Answered by execution on 2026-08-12 against `ontologize.palantirfoundry.com` with a valid user
+  token: `/code/api/extension/install-script` returns **200 and 4003 bytes of real installer**,
+  where a bogus sibling under the same path prefix returns 404 — so the 200 discriminates and is
+  not a catch-all. The installer names `ri.foundry.cli.artifacts.repository`, and that repository
+  serves `cli-linux-amd64-latest` as **179411392 bytes of ELF 64-bit LSB pie executable, x86-64**.
+  A CLI that downloads is a stronger answer than a feature flag that reads enabled.
+  One earlier reading was discarded rather than carried: `/workspace/code/superrepo` returns 200,
+  but so does every `/workspace/**` path, byte-identical — it is an SPA shell and it is not
+  evidence. The control is why the API result means anything.
+  Two things this did **not** establish, and neither is assumed. The binary has not been executed,
+  so no `foundry` subcommand is confirmed and `minCliVersion` is unread. The enrollment half of
+  `tests/probes/test_superrepo_create_preview_deploy.md` section 6 has not been run, so
+  `foundry create`, the scaffold tree, local preview, deploy, and the Python-functions
+  contradiction at its step 5 all remain unobserved. The prefab stays `probed: false`.
+  The MCP fallback recorded here — ontology types through the MCP tools on a branch, a hand-created
+  TypeScript Functions repository, a Developer Console app — is no longer the path, but is retained
+  rather than deleted, because the constitution's namespace rule differs across the two: SuperRepo
+  namespaces types at emission and the fallback cannot, so the fallback must prefix them instead.
+  Unblocks: G017, G019, G031, and the walking skeleton's repo layout.
 
 - G033 — node: n.rule_corpus — volatility: high — last_reviewed: phase--1 — CLOSED
   Was: the three primary regulatory sources were refused at CONNECT with 403 by the build
@@ -244,7 +258,32 @@ default; the entry records which decision and how reversible it is.
   Still owed: the three probes themselves. Egress makes them runnable; it does not run them, and
   none of the three probe files named in the prefab register exists yet.
 
-- G034 — node: n.ontology — volatility: high — last_reviewed: phase--1 — NARROWED, still open
+- G034 — node: n.ontology — volatility: high — last_reviewed: phase--1 — CLOSED
+  Closed 2026-08-12. The restart landed, `palantir-mcp@0.14.0` connected, and it answers live
+  reads rather than merely starting: the ontology RID resolves, an object-type search returns
+  **1,225** types, and folder listings resolve by RID. The identity behind them is confirmed at
+  `/multipass/api/me` — christianpinkerton2@gmail.com, organizations American Tech Fellowship and
+  Public — so "token validity and scopes unknown", the last thing this gap held open, is now known.
+  Three things the connection taught that the gap could not have predicted, recorded so they are
+  not re-derived:
+  - `palantir-mcp` on npm is a **wrapper, not the server**. It downloads and runs `@palantir/mcp`,
+    which is on no public registry and resolves from the enrollment's own artifacts registry at
+    `ri.artifacts.repository.discovered.foundry-mcp`. That is the same distribution model the CLI
+    uses, and it was the first evidence the artifacts channel works from this machine — which is
+    what made G032 answerable.
+  - the static `FOUNDRY_TOKEN` in `~/.mcp.json` was **expired the whole time**: `/multipass/api/me`
+    returned `Default:Unauthorized` with `parameters.error = EXPIRED`, while MCP kept working,
+    because the wrapper holds a separate credential at `~/.palantir/mcp-config.json`. **A working
+    MCP server is not evidence that the configured token is valid.** The two are different
+    credentials on different paths and must be tested apart. This gap's own plan — "the MCP server
+    exercises the token itself on connection, which is the right place to learn this" — was wrong
+    for exactly this reason, and would have reported a valid token where there was none.
+  - Palantir MCP writes ontology **types** and not ontology **data**. G016 already recorded this;
+    the connection confirmed it rather than discovering it.
+  Reversible: nothing was committed to either topology while it was open.
+  The account below is what this gap said before it closed, retained because L0013's lesson is
+  that a compound blocker gets decomposed before it is believed — and this one hid its single
+  load-bearing item behind three that were not.
   Was: no enrollment, no credentials, no `foundry` CLI, no MCP server. The recorded assumption —
   that the enrollment exists and is simply not attached here — held. Three of the four are now
   settled and one remains.

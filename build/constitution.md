@@ -134,6 +134,28 @@ Take the most reversible option, append a gap, and continue.
 nothing about what gets built. No regulation governs a build decision, so no build decision
 escalates on regulatory grounds.
 
+## Namespace and non-collision
+[BINDING] origin: specified
+Every Foundry resource this build creates is namespaced `sr2`, enforced by the platform wherever
+the platform can enforce it:
+- in the SuperRepo, `foundry.yml` carries `apiNamespace: sr2`, so Ontology-as-code types are
+  namespaced at emission and non-collision is structural rather than conventional
+- on the MCP fallback path there is no namespace to carry — types are created into the **shared**
+  enrollment ontology directly — so they take the display prefix `[SR2]` and the apiName prefix
+  `Sr2`, and that prefix is asserted at emission rather than applied by hand
+- every non-ontology resource lands under `PERSONAL PROJECT: christianpinkerton2`; an object type
+  is the one resource that does not obey a folder, which is why it needs the prefix
+A prior build of this system exists on the same enrollment under the display prefix
+`[SignatureReady]` and the apiName prefix `Sr`. It is **superseded, not extended**: no type, link,
+action, dataset or repository belonging to it is read as an input, imported, or modified here, and
+its `DEC-###`, `REQ-####` and `GAP-A-##` identifiers are not this build's identifiers. Nothing is
+inherited from it — including its own claim that a later phase supersedes its tracer types, which
+is a claim about that build and not about this one.
+The enrollment is shared with a training cohort and its ontology already holds ~1,225 object types
+by many authors, so a name is not free merely because this build has not used it.
+kill_test: `tests/build/test_namespace_is_disjoint` — every emitted type name is disjoint from the
+prior build's, and no emitted apiName omits the prefix.
+
 ## Operating loop
 [BINDING] origin: specified
 1. Receive packet — constitution + own node + neighbour interfaces + own seams, prefabs, gaps

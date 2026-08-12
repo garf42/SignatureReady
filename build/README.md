@@ -6,7 +6,7 @@ needs a node id and a phase.
 
 ```
 build/
-├── constitution.md      capped at 200 lines, read by every agent, every task (currently 148)
+├── constitution.md      capped at 200 lines, read by every agent, every task (currently 170)
 ├── nodes/*.md           20 nodes; only that node's agent reads its file
 ├── seams.jsonl          53 edges; 27 replay, 26 static
 ├── prefabs.jsonl        16 external dependencies, each with its probe

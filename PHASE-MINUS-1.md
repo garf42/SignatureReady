@@ -111,26 +111,53 @@ palantir-mcp` could never start; the absence surfaced as "no MCP server connecte
 as if that were the cause. Node v24.19.0 LTS is now installed at `/usr/local` from a tarball verified
 against nodejs.org's `SHASUMS256.txt`.
 
-> What remains is **a Claude Code restart** — MCP servers are spawned at session start. Nothing
-> further is owed by the operator. Token validity and scopes are still unknown; they are learned on
-> connection, and were deliberately not tested from the shell.
+> **Both closed on 2026-08-12.** The restart landed and `palantir-mcp@0.14.0` connected — answering
+> live reads rather than merely starting: the ontology RID resolves, an object-type search returns
+> 1,225 types, folder listings resolve by RID, and `/multipass/api/me` names
+> christianpinkerton2@gmail.com in organizations American Tech Fellowship and Public.
+> **G034 is CLOSED. G032 is ANSWERED, and the answer is that SuperRepo is available.**
 
-G032 is still **open, not answered**. "SuperRepo is unavailable" and "SuperRepo was never asked" are
-different states, and the second is still the true one.
+Two rows of that table were wrong in ways worth keeping.
+
+The `foundry` CLI was not "absent, and correctly so". It downloads:
+`/code/api/extension/install-script` returns 200 and 4003 bytes of real installer against a 404 on
+a bogus sibling path, and `ri.foundry.cli.artifacts.repository` serves `cli-linux-amd64-latest` as
+179411392 bytes of ELF 64-bit LSB pie executable, x86-64. The register's inference — served from
+each enrollment's own artifacts registry, fetchable once attached — was exactly right, and the
+enrollment half of the runbook is now runnable rather than blocked.
+
+`FOUNDRY_TOKEN` was not merely "configured", it was **expired** — `/multipass/api/me` returned
+`Default:Unauthorized` with `parameters.error = EXPIRED` — and nobody noticed, because MCP kept
+working off a *different* credential that the wrapper holds at `~/.palantir/mcp-config.json`.
+`palantir-mcp` on npm is a wrapper, not the server; it downloads `@palantir/mcp` from
+`ri.artifacts.repository.discovered.foundry-mcp`, the same channel the CLI uses, and that download
+succeeding was the first evidence the artifacts channel worked at all.
+
+> **A working MCP server is not evidence that the configured token is valid.** This gap's own plan
+> — "the MCP server exercises the token itself on connection, which is the right place to learn
+> this" — would have reported a valid token where there was none. Two credentials, two paths,
+> tested apart. Kept as **L0014**.
+
+One reading was discarded rather than carried: `/workspace/code/superrepo` returns 200, but so does
+every `/workspace/**` path, byte-identical — an SPA shell, and no evidence. The control is the only
+reason the API results mean anything.
 
 **The lesson, kept as L0013:** a blocker written down as a compound of four unreachable things was
 never re-tested item by item, so the one that was actually load-bearing stayed hidden behind three
 that were not. Compound gaps get decomposed before they are believed.
 
-### `foundry-cli-superrepo` — probed as far as offline allows
+### `foundry-cli-superrepo` — offline half clean, availability answered, enrollment half still owed
 
 The README says to probe this one first because it is the only one whose answer changes the
-topology. It was, and its offline half ran clean: 54 assertions, 0 failures.
+topology. It was, and its offline half ran clean: 54 assertions, 0 failures. **Its availability
+question is now answered too — see G032 — but the enrollment half has still not been run.**
 
 - **The CLI is on no public registry at all.** Not npm, not PyPI, under any of twelve exact names
   tried. It is served from each enrollment's own artifacts registry. This probe **cannot be
   delegated to an unenrolled machine or agent** — a stronger constraint than the register's "may not
-  be available on this enrollment", and a constraint on *who* can run Phase −1.
+  be available on this enrollment", and a constraint on *who* can run Phase −1. Confirmed against
+  the live registry: the installer resolves the binary from `ri.foundry.cli.artifacts.repository`,
+  and the wrapper resolved `@palantir/mcp` from a sibling repository the same way.
 - **The Ontology-as-code toolchain runs with no enrollment.** The full chain — `ontology.mjs` →
   IR → full metadata → generated OSDK TypeScript — executes offline and deterministically. This is
   the biggest single de-risk in Phase −1: **`n.ontology` is no longer waiting on this prefab.**
@@ -164,7 +191,9 @@ reading it back by RID. A node with no resource is not built, so nothing here cl
 
 ## Next, in order
 
-Nothing below is waiting on the operator. Steps 1 and 2 need only a restart to have happened.
+Nothing below is waiting on the operator, and nothing below is waiting on the environment. The
+restart has happened, MCP is connected, egress is open and the CLI downloads. **Every remaining
+item in Phase −1 is work owed.**
 
 1. **Write and run the three corpus probes.** Egress is open; the probe files do not exist yet.
    `tests/probes/test_ecfr_part1b_retrieval.py`, `tests/probes/test_fr_api_paging.py`,
@@ -173,11 +202,14 @@ Nothing below is waiting on the operator. Steps 1 and 2 need only a restart to h
    constraints in G033 and G036 rather than working around them. This unblocks `n.rule_corpus`,
    `n.authority_ledger` and `n.precedent` — and the corpus unblocks everything, including the three
    regulatory fixtures held back below.
-2. **Run the eight Foundry probes** once the MCP server is connected. Start with
-   `tests/probes/test_superrepo_create_preview_deploy.md` section 6 — a runbook naming exactly the
-   five items still pending — because `foundry-cli-superrepo` is the only prefab whose answer changes
-   the topology. Settle the Python-functions contradiction, which is step 5 of it. This is also where
-   G032 finally becomes answered rather than open.
+2. **Run the eight Foundry probes.** The MCP server is connected, so nothing gates these. Start with
+   `tests/probes/test_superrepo_create_preview_deploy.md` section 6, whose step 0 — availability —
+   is the only one already discharged. The binary has **not** been executed: no subcommand and no
+   `minCliVersion` is confirmed, and `foundry create`, the scaffold tree, local preview and deploy
+   are all unobserved. Settle the Python-functions contradiction, which is step 5.
+   Install the CLI by fetching the binary directly rather than piping the installer to a shell — the
+   installer also appends a PATH export to `~/.bashrc` and runs `foundry login --non-interactive`,
+   both of which are side effects on the operator's machine that a probe should not smuggle in.
 3. **`n.ontology` is openable independently of both.** The Ontology-as-code chain runs offline, the
    PIC obligation is a known thirteen entities, and G007 is confirmed. Note that `packet.py` will
    still print **"Do not build this node."** while its prefabs are unprobed — that refusal is the
@@ -188,7 +220,10 @@ Environment, verified 2026-08-12, so no one re-derives it: egress open to eCFR /
 HuggingFace / npm / raw.githubusercontent; Node v24.19.0 + npm 11.17.0 at `/usr/local`; `gh` 2.23.0
 authenticated as `garf42` with `repo` and `workflow` scopes and `git push` working; Python 3.11.2
 **stdlib only** — no pip, no `requests`, no `pytest`, so probes use `urllib.request` and the build
-suites run standalone (`python3 tests/build/test_gate.py`).
+suites run standalone (`python3 tests/build/test_gate.py`); Palantir MCP connected against
+`ontologize.palantirfoundry.com` as christianpinkerton2@gmail.com; SuperRepo available and the
+Foundry CLI fetchable. `CLAUDE.md` carries the durable version of all of this, including the
+containment boundary and the two-credential trap. Add to it rather than re-discovering it.
 
 ## Machinery added along the way
 
