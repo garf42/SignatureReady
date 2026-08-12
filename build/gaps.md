@@ -220,33 +220,59 @@ default; the entry records which decision and how reversible it is.
   Reversible: yes, but not cheaply once code exists — which is why it is probed first.
   Blocks: G017, G019, G031, and the walking skeleton.
 
-- G033 — node: n.rule_corpus — volatility: high — last_reviewed: phase-0
-  The three primary regulatory sources are unreachable from the build environment. Its network
-  policy refuses `www.ecfr.gov`, `www.federalregister.gov` and `huggingface.co` at CONNECT with
-  403; `raw.githubusercontent.com`, `registry.npmjs.org` and `pypi.org` are open. This is an
-  environment setting, not a property of the sources.
-  Assumed: the constraint is the environment's and lifts by widening the network policy or by
-  running Phase −1 where egress is open. No source is substituted — Cornell/LII serves superseded
-  Part 1b text and is excluded at the retriever, and no regulatory value is transcribed from
-  anywhere but the primary source, per tie-break rules 1 and 3.
-  Reversible: yes, entirely — nothing has been built against a substitute.
-  Blocks: the ecfr.gov, federalregister.gov and PNNL/NEPATEC2.0 probes; therefore n.rule_corpus,
-  n.authority_ledger and n.precedent; therefore every node downstream of the corpus, which is all
-  of them. It also blocks authoring the n.element_sets, n.enumerations and n.ce_catalog fixtures,
-  because those are transcriptions of primary source text and inventing them is the exact demon
-  the tie-break order forbids.
+- G033 — node: n.rule_corpus — volatility: high — last_reviewed: phase--1 — CLOSED
+  Was: the three primary regulatory sources were refused at CONNECT with 403 by the build
+  environment's network policy. The assumption recorded at the time — that this was the
+  environment's constraint and not a property of the sources — held. Egress was widened and all
+  three now answer.
+  Closed on evidence, not on the setting changing: `www.ecfr.gov` returned 7 CFR Part 1b whole
+  over the versioner v1 API, 222131 bytes, all twelve sections §§ 1b.1 to 1b.12 present, and two
+  retrievals in separate processes were byte-identical at
+  sha256 a8097af3cf7df54af4fc22c3b90b898dace6e180618583278093315afea6db20 — which is the
+  determinism half of that prefab's probe_dims, observed rather than assumed.
+  `www.federalregister.gov` answered its documents.json API and `huggingface.co` resolved
+  PNNL/NEPATEC2.0 as public with 507 files.
+  No source was substituted while this was open and nothing was built against one, so closing it
+  costs nothing to unwind.
+  Two constraints observed at closure belong to the probes, not to this gap, and are recorded here
+  only so they are not re-discovered: eCFR refuses a `date` past the title's most recent issue date
+  (404 at 2026-08-12 against an issue date of 2026-08-10), so a retrieval pinned to "today" breaks
+  on any day the title was not reissued; and Federal Register's `conditions[cfr][part]` must be an
+  integer, so **Part 1b cannot be named in the CFR filter at all** — `part=1` is a different part,
+  and the amendment lineage has to come from term search, which is a weaker instrument than the
+  register assumed. See G036.
+  Still owed: the three probes themselves. Egress makes them runnable; it does not run them, and
+  none of the three probe files named in the prefab register exists yet.
 
-- G034 — node: n.ontology — volatility: high — last_reviewed: phase-0
-  No Foundry enrollment is reachable from the build environment: no credentials, no `foundry` CLI
-  on PATH, and no Palantir MCP server connected.
-  Assumed: the enrollment exists and is simply not attached here. G032 is therefore still open
-  rather than answered — "SuperRepo is unavailable" and "SuperRepo was never asked" are different
-  states, and only the second is true today.
+- G034 — node: n.ontology — volatility: high — last_reviewed: phase--1 — NARROWED, still open
+  Was: no enrollment, no credentials, no `foundry` CLI, no MCP server. The recorded assumption —
+  that the enrollment exists and is simply not attached here — held. Three of the four are now
+  settled and one remains.
+  Settled: an enrollment is named and live at `ontologize.palantirfoundry.com`, which answers
+  `/api/v2/ontologies` with **401** unauthenticated — the host resolves, TLS completes and the
+  endpoint exists, so this is authentication pending, not absence. A `FOUNDRY_TOKEN` is configured
+  for it in `~/.mcp.json`. Node was absent from the machine entirely and is now installed
+  (v24.19.0 LTS at /usr/local, tarball checksum verified against nodejs.org SHASUMS256), which was
+  the actual reason no MCP server was connected: the server's command is `npx -y palantir-mcp` and
+  `npx` did not exist. `palantir-mcp@0.14.0` resolves on npm, downloads and launches, reaching its
+  token check.
+  Still open, and this is the whole of what remains: the server is not connected **in this
+  session**, because MCP servers are spawned at session start and at this session's start `npx` was
+  absent. It connects on the next restart. Nothing further is owed by the operator.
+  Not yet known: whether the token is valid and what scopes it carries. It was deliberately not
+  exercised from the shell — reading a credential out of a config file and posting it to a remote
+  host is indistinguishable from exfiltration, and the permission classifier refused it, correctly.
+  The MCP server exercises the token itself on connection, which is the right place to learn this.
   Reversible: yes, and nothing has been committed to either topology.
-  Blocks: the palantir-mcp, foundry-cli-superrepo, functions-typescript-v2,
-  foundry.global-branching, foundry.egress, platform.model-access, aip.document-intelligence and
-  aip.evals probes; G017, G019, G031 and G032; operating-loop step 8, which is what makes a node
-  built rather than written; and therefore Phase 0 in its entirety.
+  Blocks, unchanged until the restart lands: the palantir-mcp, foundry-cli-superrepo,
+  functions-typescript-v2, foundry.global-branching, foundry.egress, platform.model-access,
+  aip.document-intelligence and aip.evals probes; G017, G019, G031 and G032; operating-loop step 8,
+  which is what makes a node built rather than written; and therefore Phase 0 in its entirety.
+  G032 stays open rather than answered — "SuperRepo is unavailable" and "SuperRepo was never asked"
+  are still different states, and the second is still the true one.
+  One correction to the register it is worth carrying: the `foundry` CLI being on no public
+  registry is not evidence of absence, it is served from each enrollment's own artifacts registry.
+  With an enrollment attached it becomes fetchable for the first time.
 
 - G035 — node: n.det_core — volatility: high — last_reviewed: phase--1
   A generated OSDK function is UNPINNED by default, so its invoked version is chosen server-side
@@ -267,3 +293,25 @@ default; the entry records which decision and how reversible it is.
   Reversible: yes — pinning is a property of the import list.
   Blocks: n.det_core's algorithm-version stamp, and n.surface/c1, which has been tightened to read
   `isFixedVersion` and report unknown rather than the literal.
+
+- G036 — node: n.authority_ledger — volatility: medium — last_reviewed: phase--1
+  Federal Register cannot be asked for 7 CFR Part 1b. Its `conditions[cfr][part]` filter requires
+  an integer — `part=1b` is rejected with HTTP 400, `"CFR part must be an integer or a range"` —
+  and `part=1` is a different part entirely, returning 76 documents described as "Documents
+  affecting 7 CFR 1". Established by execution against the live API, not read from documentation.
+  This matters because n.authority_ledger's whole job is the amendment lineage of Part 1b, and the
+  structured, authoritative filter for exactly that question does not accept the part it needs.
+  The remaining route is full-text term search, which returns 902 documents for `"7 CFR Part 1b"`
+  and is a recall-and-precision instrument rather than an authoritative one: it will admit
+  documents that merely mention the part and omit any amendment whose text spells the citation
+  differently.
+  Assumed: the lineage is assembled from term search and then **verified against a second source**
+  rather than trusted, because a lineage that silently omits an amendment is indistinguishable from
+  a complete one at the point of use, and n.authority_ledger's guarantee is completeness. eCFR
+  carries per-section source credits and is the natural cross-check. No lineage is transcribed from
+  memory, per tie-break rules 1 and 3.
+  Also observed and not yet designed against: paging is cursor-based via `search_after_cursor`,
+  not offset, so a paged retrieval is not resumable from a page number alone.
+  Reversible: yes — nothing is built against either route yet.
+  Blocks: nothing today. It constrains how the federalregister.gov probe must be written, and it is
+  the reason that probe cannot simply assert a filter and move on.

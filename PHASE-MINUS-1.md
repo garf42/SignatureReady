@@ -1,6 +1,6 @@
 # Phase −1 — probe results
 
-Phase −1 is the sixteen prefab probes. **Five ran. Eleven did not**, and the eleven divide cleanly
+Phase −1 is the sixteen prefab probes. **Five ran. Eleven did not**, and the eleven divided cleanly
 into two environment facts rather than into work nobody got to.
 
 Read the verdicts in `build/prefabs.jsonl`; this file is the map, not the record. Every probe file
@@ -72,25 +72,55 @@ takes on is now a number: **thirteen entities**, derivable only from the CSV.
 
 ## What did not run, and why
 
-Nothing here was skipped. Each is blocked on one of two facts, and both lift by changing a setting
-rather than by doing work.
+> **Both blockers were re-tested on 2026-08-12 and both moved.** The gate is still 11, correctly —
+> nothing new was *probed*. But the eleven are no longer eleven-blocked-on-the-environment. The
+> section below records the state before and after; `build/gaps.md` G033 and G034 are authoritative.
 
-**G033 — the network policy refuses the three primary sources.** `www.ecfr.gov`,
-`www.federalregister.gov` and `huggingface.co` all answer 403 at CONNECT. `raw.githubusercontent.com`,
-`registry.npmjs.org` and `pypi.org` are open.
+**G033 — CLOSED.** Egress was opened and all three sources answer. Closed on evidence rather than on
+the setting changing: eCFR returned 7 CFR Part 1b whole over the versioner v1 API — 222131 bytes,
+all twelve sections §§ 1b.1 to 1b.12 — and two retrievals in separate processes were **byte-identical**
+(`sha256 a8097af3…fea6db20`), which is the determinism half of that prefab's `probe_dims` observed
+rather than assumed. Federal Register answered `documents.json`. `PNNL/NEPATEC2.0` resolves as public,
+507 files, tree and parquet readable anonymously despite `gated: "auto"`.
 
-> blocks `ecfr.gov`, `federalregister.gov`, `PNNL/NEPATEC2.0` — therefore `n.rule_corpus`,
-> `n.authority_ledger`, `n.precedent`, and everything downstream of the corpus, which is all of them.
+> The three corpus probes are now blocked on **nothing but themselves** — the files named in the
+> register do not exist yet and have never been run. That is work owed, not a constraint.
 
-**G034 — there is no Foundry enrollment.** No credentials, no `foundry` CLI, no Palantir MCP server.
+Two constraints fell out of closing it, both recorded so they are not re-discovered:
 
-> blocks `palantir-mcp`, `foundry-cli-superrepo`, `functions-typescript-v2`,
-> `foundry.global-branching`, `foundry.egress`, `platform.model-access`,
-> `aip.document-intelligence`, `aip.evals` — and operating-loop step 8, which is what makes a node
-> *built* rather than written.
+- **eCFR refuses a future `date`.** 404 at `2026-08-12` against a most-recent issue date of
+  `2026-08-10`. A retrieval pinned to "today" breaks on any day the title was not reissued. This also
+  answers **G004** in passing: a structured API *does* exist at paragraph granularity.
+- **Federal Register cannot name Part 1b at all.** `conditions[cfr][part]` requires an integer;
+  `part=1b` is HTTP 400 and `part=1` is a different part. The amendment lineage has to come from term
+  search and be cross-checked, not trusted — **G036**, and a worse problem than the rate-limit
+  question G006 recorded.
 
-G032 is therefore still **open, not answered**. "SuperRepo is unavailable" and "SuperRepo was never
-asked" are different states, and only the second is true today.
+**G034 — NARROWED to a single item.** The gap named four missing things; three were present or
+configured all along.
+
+| named as missing | actual state |
+| --- | --- |
+| an enrollment | live at `ontologize.palantirfoundry.com` — `/api/v2/ontologies` answers **401**, so authentication pending, not absence |
+| credentials | `FOUNDRY_TOKEN` configured in `~/.mcp.json` |
+| the `foundry` CLI | still absent, and correctly so — it is served from each enrollment's own artifacts registry, so it becomes fetchable only once attached |
+| a Palantir MCP server | `palantir-mcp@0.14.0` resolves, downloads and launches, reaching its token check |
+
+The single actual cause was that **Node was not installed on the machine at all**, so `npx -y
+palantir-mcp` could never start; the absence surfaced as "no MCP server connected" and was recorded
+as if that were the cause. Node v24.19.0 LTS is now installed at `/usr/local` from a tarball verified
+against nodejs.org's `SHASUMS256.txt`.
+
+> What remains is **a Claude Code restart** — MCP servers are spawned at session start. Nothing
+> further is owed by the operator. Token validity and scopes are still unknown; they are learned on
+> connection, and were deliberately not tested from the shell.
+
+G032 is still **open, not answered**. "SuperRepo is unavailable" and "SuperRepo was never asked" are
+different states, and the second is still the true one.
+
+**The lesson, kept as L0013:** a blocker written down as a compound of four unreachable things was
+never re-tested item by item, so the one that was actually load-bearing stayed hidden behind three
+that were not. Compound gaps get decomposed before they are believed.
 
 ### `foundry-cli-superrepo` — probed as far as offline allows
 
@@ -134,15 +164,31 @@ reading it back by RID. A node with no resource is not built, so nothing here cl
 
 ## Next, in order
 
-1. **Open network egress** to `ecfr.gov`, `federalregister.gov` and `huggingface.co`, or run those
-   three probes where egress is open. This unblocks the corpus, and the corpus unblocks everything.
-2. **Attach a Foundry enrollment.** Then run `tests/probes/test_superrepo_create_preview_deploy.md`
-   section 6 on an enrolled machine — it is a runbook naming exactly the five items still pending —
-   and settle the Python-functions contradiction, which is step 5 of it.
-3. **Open `n.ontology` now if you want to move before either lands.** The Ontology-as-code chain
-   runs offline, the PIC obligation is a known thirteen entities, and G007 is confirmed. It is the
-   one node Phase −1 genuinely unblocked.
+Nothing below is waiting on the operator. Steps 1 and 2 need only a restart to have happened.
+
+1. **Write and run the three corpus probes.** Egress is open; the probe files do not exist yet.
+   `tests/probes/test_ecfr_part1b_retrieval.py`, `tests/probes/test_fr_api_paging.py`,
+   `tests/probes/test_nepatec_grain_and_filter.py` — the paths the register already names. Each must
+   reproduce its evidence rather than re-derive it, run twice in separate processes, and assert the
+   constraints in G033 and G036 rather than working around them. This unblocks `n.rule_corpus`,
+   `n.authority_ledger` and `n.precedent` — and the corpus unblocks everything, including the three
+   regulatory fixtures held back below.
+2. **Run the eight Foundry probes** once the MCP server is connected. Start with
+   `tests/probes/test_superrepo_create_preview_deploy.md` section 6 — a runbook naming exactly the
+   five items still pending — because `foundry-cli-superrepo` is the only prefab whose answer changes
+   the topology. Settle the Python-functions contradiction, which is step 5 of it. This is also where
+   G032 finally becomes answered rather than open.
+3. **`n.ontology` is openable independently of both.** The Ontology-as-code chain runs offline, the
+   PIC obligation is a known thirteen entities, and G007 is confirmed. Note that `packet.py` will
+   still print **"Do not build this node."** while its prefabs are unprobed — that refusal is the
+   gate working, and step 2 is what clears it.
 4. Then the walking skeleton, once per document type.
+
+Environment, verified 2026-08-12, so no one re-derives it: egress open to eCFR / Federal Register /
+HuggingFace / npm / raw.githubusercontent; Node v24.19.0 + npm 11.17.0 at `/usr/local`; `gh` 2.23.0
+authenticated as `garf42` with `repo` and `workflow` scopes and `git push` working; Python 3.11.2
+**stdlib only** — no pip, no `requests`, no `pytest`, so probes use `urllib.request` and the build
+suites run standalone (`python3 tests/build/test_gate.py`).
 
 ## Machinery added along the way
 
