@@ -8,3 +8,7 @@ build-out/
 .probe-work/
 *.log
 .DS_Store
+
+# local Claude Code overrides and editor backups
+.claude/settings.local.json
+*.bak
