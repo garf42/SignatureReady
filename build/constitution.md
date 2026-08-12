@@ -104,8 +104,13 @@ and all five clauses hold against that manifest alone:
 - late/null: 8.8% of pages corpus-wide carry empty text (0.1% within USDA)
 - units/tz: none. "page number" is a STRING and is a RANGE on 7.9% of USDA pages — a page
   anchor is sometimes a span, which is demon D1 arriving in the source rather than the reader
-- unknowns: G012 answered but the path bucket is impure — 3 of 210 USDA-path projects are not
-  USDA-led, and USFS is separable only from process.lead_agency, never from the path
+- filter: on `process.lead_agency`, corpus-wide — NEVER the path partition. The path has no USFS
+  bucket and its USDA bucket is impure (3 of 210 projects are DOE- or Reclamation-led). Filtering
+  on lead_agency adds 6 Forest-Service-led EIS projects the path hides: +16 FEIS, +4 DEIS, +1 ROD,
+  354 documents, 16,922 pages. Cost: the filter is a field, so selecting it reads the whole
+  18.71 GB corpus once; the resulting slice stays small at ~216 projects / ~19,163 pages
+- unknowns: G037 — `document_type` is blank on 94% of documents in those EIS projects and 47%
+  corpus-wide, so the five-type non-vacuity check cannot rest on that field alone
 
 ### src.synthetic
 - grain: one row per generated project, treatment unit, activity group, or screen

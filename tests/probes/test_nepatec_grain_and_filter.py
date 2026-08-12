@@ -69,10 +69,43 @@ The anonymous half is kept exactly as it was: it characterises the gate, and it 
      sometimes a span of up to 18 pages. And 8.8% of pages corpus-wide have empty text
      (0.1% within USDA), which a substring check must reject rather than trivially pass.
 
+SECTION 5 -- WHAT LIES OUTSIDE THE USDA PATH BUCKET, measured 2026-08-12 through the parquet
+mirror after the decision to widen scope for EIS coverage. The conclusion is that the scope did
+not need widening; the FILTER needed moving.
+
+ 11. THE EIS SHORTFALL IS AN ARTEFACT OF FILTERING ON THE PATH, and moving the filter to
+     `process.lead_agency` resolves it without leaving the USDA/USFS domain. Of 513 EIS-process
+     projects, **6 are Forest-Service-led** and carry **16 FEIS, 4 DEIS and 1 ROD** across 354
+     documents / 16,922 pages. With them, all five non-vacuity types are coverable and ROD goes
+     from n=1 to n=2. **Widening to "Department of Agriculture" broadly is the WRONG lever** --
+     those 12 projects yield 26 documents, every one typed `OTHER`, and zero EIS-family.
+     Cost: the filter is a field, so applying it reads the whole 18.71 GB corpus once, against
+     10.5 MB for the path slice. The resulting slice stays small: ~216 projects, ~19,163 pages.
+
+ 12. A PARQUET MIRROR EXISTS, AND IT IS A TRAP. Finding 5's "there are no parquet files" is true
+     of the REPOSITORY and false of the dataset as served: HuggingFace auto-converts to
+     `refs/convert/parquet`, 10 shards, 2.03 GB, readable with a token, queryable through
+     datasets-server's filter API. It is also `partial: true` -- **58,264 of an estimated 139,997
+     projects, about 42%**. Every count in findings 11 and 13 is therefore a LOWER BOUND, and
+     using the mirror as the ingestion path would silently drop the rest.
+
+ 13. `document_type` CANNOT CARRY NON-VACUITY -- opened as G037. It is blank on 331 of the 354
+     Forest-Service EIS documents (94%), and on 47% of the nine-file corpus sample. Mind the
+     denominator: the 26 documents from the other 12 Agriculture-led EIS projects are all typed
+     `OTHER` and none are blank, so across all 380 it reads 87% -- the 94% is the one that bears
+     on non-vacuity, because the Forest Service documents are the ones actually ingested. Its
+     populated values are CE, EA, DEA, FEIS, DEIS, ROD, FONSI and OTHER, so EIS is spelled two
+     ways and OTHER is a real bucket. The five-type check needs a derivation that reports how
+     many documents it could not type.
+
 NETWORK: fetches over HTTPS from huggingface.co. Unreachable host RAISES. The anonymous 401s
 are ASSERTED, not tolerated. The authenticated half needs a token at ~/.cache/huggingface/token
 whose identity has accepted the gate; without one it reports BLOCKED and does not fail, because
 a missing credential is not a regression in the corpus.
+
+RUNTIME: the authenticated half reads all 60 USDA files (~10 MB) and pages 513 rows plus 18 full
+EIS projects through datasets-server. Budget 30-40 minutes. It is slow because it probes at the
+corpus's real dimensions rather than a sample, which is the point.
 
 RUN:
     python3 tests/probes/test_nepatec_grain_and_filter.py          # both halves
@@ -84,7 +117,9 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 # ---------------------------------------------------------------- pinned facts
@@ -476,6 +511,151 @@ def test_prepared_by_names_organisations_not_people():
           % (present, USDA_DOCUMENTS, USDA_DOCUMENTS - present, delimited))
 
 
+# --- the corpus beyond the USDA path bucket, via the parquet mirror -------------
+#
+# Measured 2026-08-12 through datasets-server, which answers WITH a token and 401s without one.
+# Every count here is a LOWER BOUND: the mirror reports partial=true.
+
+DS = "https://datasets-server.huggingface.co"
+EIS_WHERE = '"process"."process_type"."value" LIKE \'%Impact%\''
+
+MIRROR_ROWS = 58264               # converted; estimated_num_rows is 139997
+EIS_PROJECTS = 513
+EIS_FOREST_SERVICE = 6
+EIS_AGRICULTURE_TOTAL = 18        # includes the 6 above
+FS_EIS_DOCUMENTS = 354
+FS_EIS_PAGES = 16922
+FS_EIS_DOC_TYPES = {"": 331, "FEIS": 16, "DEIS": 4, "EA": 2, "ROD": 1}
+NON_FS_AGRICULTURE_EIS_DOCS = {"OTHER": 26}
+
+
+def ds(endpoint, **kw):
+    kw.update(dataset=REPO, config="default", split="train")
+    url = "%s/%s?%s" % (DS, endpoint, urllib.parse.urlencode(kw))
+    for _ in range(20):
+        try:
+            _, body = authed(url, timeout=600)
+            return json.loads(body)
+        except urllib.error.HTTPError as exc:
+            detail = exc.read()[:200].decode("utf-8", "replace")
+            if "loading" in detail or exc.code in (429, 500, 502, 503):
+                time.sleep(20)
+                continue
+            raise AssertionError("%s -> %s %s" % (endpoint, exc.code, detail))
+    raise AssertionError("%s never became ready" % endpoint)
+
+
+def test_a_parquet_mirror_exists_and_is_partial():
+    """CORRECTS this file's own 'there are no parquet files'. True of the repo, false of the
+    dataset as served: HuggingFace auto-converts to refs/convert/parquet. It is a far cheaper
+    read than 18.71 GB of JSONL -- and it is INCOMPLETE, which is the part that matters."""
+    refs = json.loads(authed("%s/api/datasets/%s/refs" % (HF, REPO))[1])
+    converts = [c["ref"] for c in refs.get("converts") or []]
+    assert "refs/convert/parquet" in converts, (
+        "the parquet conversion is gone; the only route left is 18.71 GB of JSONL")
+
+    size = ds("size")["size"]["config"]
+    assert size["num_rows"] == MIRROR_ROWS, (
+        "mirror row count moved: %d, pinned %d" % (size["num_rows"], MIRROR_ROWS))
+    est = size["estimated_num_rows"]
+    assert est > size["num_rows"], (
+        "the mirror is no longer partial (%d of %d) -- it can now be trusted as the whole "
+        "corpus, which changes the ingestion design" % (size["num_rows"], est))
+    print("      parquet mirror: %d of ~%d projects = %.0f%% -- PARTIAL. Using it as the "
+          "ingestion path silently drops the rest." % (
+              size["num_rows"], est, 100.0 * size["num_rows"] / est))
+
+
+def eis_projects():
+    """Every EIS-process project, process column only. Cached -- two checks below need it and
+    paging 513 rows twice doubles an already slow probe."""
+    if "eis" not in _AUTH:
+        out, offset = [], 0
+        while True:
+            page = ds("filter", where=EIS_WHERE, offset=offset, length=100, columns="process")
+            if not page["rows"]:
+                break
+            out.extend((r["row_idx"], value_of(r["row"]["process"], "lead_agency") or [])
+                       for r in page["rows"])
+            offset += len(page["rows"])
+            if offset >= page["num_rows_total"]:
+                break
+        _AUTH["eis"] = out
+    return _AUTH["eis"]
+
+
+def test_forest_service_eis_exists_outside_the_usda_path_bucket():
+    """The finding that resolves G012's EIS residual. Filtering on lead_agency instead of the
+    path reaches EIS the path cannot see -- while staying inside USDA/USFS."""
+    rows = eis_projects()
+    total = len(rows)
+    assert total == EIS_PROJECTS, (
+        "EIS-process projects moved: %d, pinned %d" % (total, EIS_PROJECTS))
+
+    agencies = collections.Counter()
+    for _idx, las in rows:
+        for a in las:
+            agencies[a] += 1
+
+    fs = agencies["Department of Agriculture - Forest Service"]
+    ag = sum(n for a, n in agencies.items() if "Agriculture" in a)
+    assert fs == EIS_FOREST_SERVICE, (
+        "Forest-Service-led EIS projects: %d, pinned %d" % (fs, EIS_FOREST_SERVICE))
+    assert ag == EIS_AGRICULTURE_TOTAL, (
+        "Agriculture-led EIS projects: %d, pinned %d" % (ag, EIS_AGRICULTURE_TOTAL))
+    print("      of %d EIS-process projects, %d are Forest-Service-led and %d Agriculture-led "
+          "-- none of them reachable from the USDA path bucket, which holds 0 EIS files"
+          % (total, fs, ag))
+
+
+def test_the_eis_gain_is_entirely_forest_service_not_agriculture_broadly():
+    """Guards against the wrong widening. 'Department of Agriculture' without 'Forest Service'
+    contributes 26 documents, all typed OTHER, and NOT ONE EIS-family document."""
+    fs_types, other_types = collections.Counter(), collections.Counter()
+    fs_docs = fs_pages = 0
+    for idx, las in eis_projects():
+        if not any("Agriculture" in a for a in las):
+            continue
+        is_fs = any("Forest Service" in a for a in las)
+        row = ds("rows", offset=idx, length=1)["rows"][0]["row"]
+        for d in row.get("documents") or []:
+            dm = (d.get("metadata") or {}).get("document_metadata") or {}
+            (fs_types if is_fs else other_types)[value_of(dm, "document_type")] += 1
+            if is_fs:
+                fs_docs += 1
+                fs_pages += len(d.get("pages") or [])
+
+    assert dict(fs_types) == FS_EIS_DOC_TYPES, (
+        "Forest Service EIS document types moved:\n  got    %r\n  pinned %r"
+        % (dict(fs_types), FS_EIS_DOC_TYPES))
+    assert dict(other_types) == NON_FS_AGRICULTURE_EIS_DOCS, (
+        "non-Forest-Service Agriculture EIS document types moved:\n  got    %r\n  pinned %r"
+        % (dict(other_types), NON_FS_AGRICULTURE_EIS_DOCS))
+    assert (fs_docs, fs_pages) == (FS_EIS_DOCUMENTS, FS_EIS_PAGES)
+
+    eis_family = sum(n for k, n in fs_types.items() if k in ("FEIS", "DEIS", "EIS"))
+    assert eis_family == 20 and fs_types["ROD"] == 1
+    print("      FOREST SERVICE gains %d EIS-family documents + %d ROD across %d docs / %d "
+          "pages. The other %d Agriculture-led EIS projects gain %d documents, ALL 'OTHER', "
+          "and ZERO EIS-family -- widening to 'Agriculture' broadly is the wrong lever."
+          % (eis_family, fs_types["ROD"], fs_docs, fs_pages,
+             EIS_AGRICULTURE_TOTAL - EIS_FOREST_SERVICE, sum(other_types.values())))
+
+
+def test_g037_document_type_is_blank_too_often_to_carry_non_vacuity():
+    """The new gap. 94% of the ingested documents have no document_type at all, so the five-type
+    non-vacuity check cannot rest on that field and needs a derivation with a reported
+    could-not-type count."""
+    blank = FS_EIS_DOC_TYPES[""]
+    total = sum(FS_EIS_DOC_TYPES.values())
+    assert blank / total > 0.5, (
+        "document_type is now populated on most documents (%d of %d blank) -- G037 may be "
+        "closable and non-vacuity could rest on the field directly" % (blank, total))
+    print("      document_type is blank on %d of %d (%.0f%%) -- G037. Populated values are "
+          "CE/EA/DEA/FEIS/DEIS/ROD/FONSI/OTHER, so EIS is spelled two ways and OTHER is real."
+          % (blank, total, 100.0 * blank / total))
+
+
 AUTHED_CHECKS = [
     test_the_gate_is_accepted_by_this_identity,
     test_g011_the_row_grain_is_one_row_per_project,
@@ -485,6 +665,10 @@ AUTHED_CHECKS = [
     test_page_anchoring_is_real_but_the_named_page_is_sometimes_a_span,
     test_total_pages_metadata_disagrees_with_the_page_array,
     test_prepared_by_names_organisations_not_people,
+    test_a_parquet_mirror_exists_and_is_partial,
+    test_forest_service_eis_exists_outside_the_usda_path_bucket,
+    test_the_eis_gain_is_entirely_forest_service_not_agriculture_broadly,
+    test_g037_document_type_is_blank_too_often_to_carry_non_vacuity,
 ]
 
 
@@ -530,8 +714,10 @@ def main():
         return 1
     print("\nAll checks passed.")
     if skip_authed:
-        print("G011: NOT RE-MEASURED -- no token at %s. The recorded answer stands "
-              "unverified by this run." % TOKEN_PATH)
+        why = ("NEPATEC_SKIP_AUTHED was set" if os.environ.get("NEPATEC_SKIP_AUTHED")
+               else "there is no token at %s" % TOKEN_PATH)
+        print("G011: NOT RE-MEASURED -- %s. The recorded answer stands unverified by this "
+              "run, which is a gap in evidence and not a passing result." % why)
         print("VERDICT: fail (anonymous half only).")
         return 0
     print("G012: ANSWERED. 60/505 = 11.9% of files, but the path bucket is IMPURE (3 of 210 "
@@ -541,8 +727,16 @@ def main():
           "'per document' nor 'per chunk' was correct.")
     print("n.precedent/c1 is SATISFIABLE -- page text is native. Hazards: 7.9% of USDA page "
           "numbers are spans, total_pages disagrees with len(pages) on 83% of documents.")
-    print("NON-VACUITY: CE/EA/FONSI/ROD are all present in the USDA slice (ROD by exactly "
-          "one document); EIS is absent at every granularity and cannot be covered.")
+    print("NON-VACUITY: CE/EA/FONSI/ROD are all present in the USDA PATH slice (ROD by exactly "
+          "one document) and EIS is absent from it at every granularity -- but that is a "
+          "property of the PATH, not of the corpus.")
+    print("THE FILTER MOVES: on process.lead_agency corpus-wide, 6 Forest-Service-led EIS "
+          "projects appear that the path cannot see, carrying 16 FEIS + 4 DEIS + 1 ROD across "
+          "354 documents / 16,922 pages. All five types become coverable; ROD goes to n=2.")
+    print("WRONG LEVER: widening to 'Department of Agriculture' broadly adds 12 projects and "
+          "26 documents, ALL typed OTHER, and ZERO EIS-family. The gain is Forest Service only.")
+    print("LOWER BOUNDS: the parquet mirror these counts come from is partial -- 58,264 of an "
+          "estimated 139,997 projects (42%). It is a measurement instrument, not an ingest path.")
     print("VERDICT: fail -- the probe ran and the prefab does not behave as expected.")
     return 0
 

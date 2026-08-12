@@ -118,7 +118,23 @@ default; the entry records which decision and how reversible it is.
   A third finding, not anticipated at all: **the path bucket is impure.** 3 of the 210 projects
   under `USDA/` are led by DOE (2) and the Bureau of Reclamation (1). Filtering by path is not
   filtering by agency, and n.precedent/c2's reported selectivity must name which it measured.
-  Reversible: yes. See L0019. Blocks: the acceptance corpus's precedent coverage for EIS only.
+
+  **RESIDUAL RESOLVED 2026-08-12 — the filter moves from the path to `process.lead_agency`.**
+  The EIS shortfall was an artefact of filtering on the path, not a property of the corpus.
+  Measured server-side over the parquet mirror: of 513 EIS-process projects, **6 are led by
+  "Department of Agriculture - Forest Service"**, and they carry **16 FEIS, 4 DEIS and 1 ROD**
+  across 354 documents / 16,922 pages. With those included every one of the five non-vacuity
+  types is coverable, and ROD moves from n=1 to n=2 — still thin, and still worth watching.
+  **Widening to "Department of Agriculture" broadly is NOT the lever and must not be done for
+  this purpose:** the 12 non-Forest-Service Agriculture-led EIS projects yield 26 documents,
+  all of them `OTHER`, and **zero** EIS-family documents. The gain is entirely Forest Service.
+  Two costs, both measured rather than assumed:
+  - **The filter is a field, so applying it reads the whole corpus once — 18.71 GB, against the
+    10.5 MB the path slice reads today.** The resulting slice stays small (~216 projects,
+    ~19,163 pages), so this is an ingestion cost, not a working-set cost.
+  - **The counts above are LOWER BOUNDS.** They come from HuggingFace's parquet mirror, which
+    reports `partial: true` — 58,264 of an estimated 139,997 projects, about 42%.
+  Reversible: yes. See L0019, L0024. Blocks: nothing further — EIS coverage is now reachable.
 
 - G013 — node: n.element_sets — volatility: medium — last_reviewed: phase-0
   The frozen element counts in the intent predicate are transcription-derived and unverified
@@ -422,3 +438,23 @@ default; the entry records which decision and how reversible it is.
   Reversible: yes — nothing is built against either route yet.
   Blocks: nothing today. It constrains how the federalregister.gov probe must be written, and it is
   the reason that probe cannot simply assert a filter and move on.
+
+- G037 — node: n.precedent — volatility: medium — last_reviewed: phase--1 — NEW, from probing
+  `document_type` is blank on most documents, so the five-type non-vacuity check cannot rest on it.
+  Found 2026-08-12 while measuring what a lead_agency filter gains. The constitution requires at
+  least one emitted document of each of five types, and the obvious carrier of that fact is
+  `documents[].metadata.document_metadata.document_type`. It is empty far too often to bear the
+  weight: **331 of 354 documents (94%)** in the Forest-Service-led EIS projects carry
+  `{"value": ""}`, and **2,518 of 5,324 (47%)** did in the nine-file corpus sample. The populated
+  values are also not the five types the constitution names — they are `CE`, `EA`, `DEA`, `FEIS`,
+  `DEIS`, `ROD`, `FONSI` and `OTHER`, so EIS is spelled two ways and `OTHER` is a real bucket
+  (26 of 26 documents in the non-Forest-Service Agriculture EIS projects).
+  Note this is a DIFFERENT axis from the path partition: `CE/`, `EA/` and `EIS/` in the path are
+  **process families**, and a single EIS-process project holds FEIS, DEIS, ROD and untyped
+  documents together. The two were being read as one thing.
+  Assumed: non-vacuity is asserted over a **derived** document type — `document_type` where
+  populated, falling back to the process family plus document title — and the derivation reports
+  how many documents it could not type, so a silently-untyped corpus is visible. Not yet built.
+  Reversible: yes — the derivation is one function and the fallback is recorded per document.
+  Blocks: the constitution's non-vacuity clause for n.precedent, and any acceptance-corpus claim
+  that all five types are present.

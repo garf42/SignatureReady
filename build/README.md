@@ -6,11 +6,11 @@ needs a node id and a phase.
 
 ```
 build/
-├── constitution.md      capped at 200 lines, read by every agent, every task (currently 175)
+├── constitution.md      capped at 200 lines, read by every agent, every task (currently 180)
 ├── nodes/*.md           20 nodes; only that node's agent reads its file
 ├── seams.jsonl          53 edges; 27 replay, 26 static
 ├── prefabs.jsonl        16 external dependencies, each with its probe
-├── gaps.md              36 open decisions, each with a volatility expiry
+├── gaps.md              37 open decisions, each with a volatility expiry
 └── ledger.jsonl         append-only, queried by node id, never read whole
 ```
 
@@ -37,7 +37,7 @@ The three corpus probes landed together and each one moved a gap:
 | --- | --- |
 | `ecfr.gov` | G004 answered but **weaker** — the API is section-grained, not paragraph-grained. G001 is **not answerable** from the source: uniqueness belongs to a derivation, and all three available derivations fail |
 | `federalregister.gov` | G036 confirmed and widened to document metadata. Paging is offset-based, not cursor-based — and **silently wraps past page 50**. A citation in the constitution is wrong |
-| `PNNL/NEPATEC2.0` | G011 **and** G012 answered. The grain is **one row per project**, not per document or per chunk, and page text is native. USFS **is** separable — from `lead_agency`, not the path — the path bucket is **impure**, and **ROD exists at n=1**; only EIS is truly absent. 7.9% of page numbers are **spans**, which is demon D1 arriving in the source |
+| `PNNL/NEPATEC2.0` | G011 **and** G012 answered; G037 opened. The grain is **one row per project**, not per document or per chunk, and page text is native. USFS **is** separable — from `lead_agency`, not the path. Moving the filter off the path gains **6 Forest-Service EIS projects** (16 FEIS, 4 DEIS, 1 ROD), so all five non-vacuity types become coverable — at the cost of reading 18.71 GB to apply it. 7.9% of page numbers are **spans**, which is demon D1 arriving in the source |
 
 **8 are not probed.** None of them is blocked on the environment any more: G033 and G034 are both closed,
 egress is open, Palantir MCP is connected, and the Foundry CLI downloads. What remains is the work

@@ -12,8 +12,11 @@
 - every chunk carries `document_id`, `page`, `char_start`, `char_end` and an embedding; a chunk
   whose page anchor cannot be established is not emitted and is counted in a reported shortfall
 - every chunk's text is a literal substring of its named page's text
-- the corpus is filtered to USDA/USFS and the filter's selectivity — rows in, rows out — is
-  emitted, not assumed
+- the corpus is filtered to USDA/USFS **on `process.lead_agency`, corpus-wide — never on the
+  path partition**, which has no USFS bucket at all and whose USDA bucket is impure. The
+  filter's selectivity — rows in, rows out — is emitted, not assumed, and **names the field it
+  filtered on**, because path-selectivity and agency-selectivity are different numbers and were
+  being quoted for one another — G012
 - retrieval returns chunks with their page anchors intact; a result with no resolvable page is
   never returned
 
@@ -53,5 +56,7 @@ the checkable part and the only part downstream depends on.
 - G012 — **ANSWERED 2026-08-12.** 11.9% of files are USDA. USFS *is* separable, from
   `process.lead_agency` (30 of 210 projects), never from the path — and the path bucket is impure,
   carrying 3 non-USDA-led projects. c2 must report which of the two filters it measured.
-  Residual: EIS is absent from the USDA slice at every granularity, so the acceptance corpus
-  cannot cover the EIS path from here. ROD is present, but n=1.
+  Residual: **resolved by moving the filter to lead_agency.** Six Forest-Service-led EIS-process
+  projects exist outside the USDA path bucket, carrying 16 FEIS + 4 DEIS + 1 ROD across 354
+  documents / 16,922 pages. All five non-vacuity types are then coverable. ROD stands at n=2.
+- G037 — `document_type` is blank on most documents and cannot carry non-vacuity alone.
