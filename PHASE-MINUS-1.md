@@ -1,16 +1,17 @@
 # Phase −1 — probe results
 
-Phase −1 is the sixteen prefab probes. **Five ran. Eleven did not**, and the eleven divided cleanly
-into two environment facts rather than into work nobody got to.
+Phase −1 is the sixteen prefab probes. **Eight ran. Eight did not**, and none of the eight that did
+not is blocked on the environment any more — both environment gaps are closed. What remains is the
+work itself.
 
 Read the verdicts in `build/prefabs.jsonl`; this file is the map, not the record. Every probe file
 lives at the path the register already named and is re-runnable.
 
 ```bash
-python3 scripts/check.py build/ --phase 0     # 11 violations, all `probed is false`
+python3 scripts/check.py build/ --phase 0     # 8 violations, all `probed is false`
 ```
 
-The gate was 16 when this started. Nothing else fails.
+The gate was 16 when this started, and 11 before the corpus probes landed. Nothing else fails.
 
 ---
 
@@ -28,11 +29,14 @@ That is the process working, not the process failing.
 | `@osdk/react::useOsdkFunction` | **fail** | right conclusion, **wrong type, wrong package, backwards symptom** |
 | `@osdk/generator` | **fail** | right conclusion, **wrong mechanism**, and reality is worse |
 | `@osdk/react-components` | **fail** | the register tested the **wrong hinge** |
+| `ecfr.gov` | **fail** | G004 answered **weaker** than claimed; G001 **not answerable** from the source |
+| `federalregister.gov` | **fail** | paging is offset, not cursor — and **wraps silently** past page 50 |
+| `PNNL/NEPATEC2.0` | **fail** | the gate blocks all content; **no USFS bucket**, and no USDA EIS |
 
 "fail" means the probe ran and the prefab does not behave as the register expected. It is a result,
-not an error.
+not an error. Six of the eight are fails, which is the register being corrected by execution.
 
-**Four of five changed a method. None changed a guarantee.** That is exactly what the order of work
+**Four of the first five changed a method. None changed a guarantee.** That is exactly what the order of work
 predicts, and the one place it did not hold — `n.surface/c1` — was a method inside a clause, which
 has been tightened rather than replaced.
 
@@ -72,25 +76,35 @@ takes on is now a number: **thirteen entities**, derivable only from the CSV.
 
 ## What did not run, and why
 
-> **Both blockers were re-tested on 2026-08-12 and both moved.** The gate is still 11, correctly —
-> nothing new was *probed*. But the eleven are no longer eleven-blocked-on-the-environment. The
-> section below records the state before and after; `build/gaps.md` G033 and G034 are authoritative.
+> **Both blockers were re-tested on 2026-08-12 and both are now CLOSED.** The section below records
+> the state before and after; `build/gaps.md` G033 and G034 are authoritative. The gate fell from 11
+> to 8 when the three corpus probes ran — not when the blockers cleared, because clearing a blocker
+> probes nothing.
 
 **G033 — CLOSED.** Egress was opened and all three sources answer. Closed on evidence rather than on
 the setting changing: eCFR returned 7 CFR Part 1b whole over the versioner v1 API — 222131 bytes,
 all twelve sections §§ 1b.1 to 1b.12 — and two retrievals in separate processes were **byte-identical**
 (`sha256 a8097af3…fea6db20`), which is the determinism half of that prefab's `probe_dims` observed
-rather than assumed. Federal Register answered `documents.json`. `PNNL/NEPATEC2.0` resolves as public,
-507 files, tree and parquet readable anonymously despite `gated: "auto"`.
+rather than assumed. Federal Register answered `documents.json`. `PNNL/NEPATEC2.0` resolves as public, 507 files.
+> This originally continued "tree and parquet readable anonymously despite `gated: \"auto\"`."
+> **Both halves were wrong**, and the probe caught it: there are **zero** parquet files — the corpus
+> is 505 JSONL — and no file content is anonymously readable at all, including `.gitattributes`.
+> Only README.md and the metadata and tree APIs are public. Reachability was read as retrievability.
 
-> The three corpus probes are now blocked on **nothing but themselves** — the files named in the
-> register do not exist yet and have never been run. That is work owed, not a constraint.
+> **The three corpus probes have since been written and run — 2026-08-12.** All three carry verdict
+> `fail`, meaning each ran and the prefab does not behave as the register expected. Between them they
+> answered G004 and G012, reframed G001 from "unverified" to "not answerable from this source",
+> newly blocked G011 on HuggingFace authentication, widened G036, corrected two claims in this file,
+> and corrected a citation in the constitution. See L0017, L0018, L0019.
 
 Two constraints fell out of closing it, both recorded so they are not re-discovered:
 
 - **eCFR refuses a future `date`.** 404 at `2026-08-12` against a most-recent issue date of
-  `2026-08-10`. A retrieval pinned to "today" breaks on any day the title was not reissued. This also
-  answers **G004** in passing: a structured API *does* exist at paragraph granularity.
+  `2026-08-10`. A retrieval pinned to "today" breaks on any day the title was not reissued.
+  > This paragraph originally added "and this also answers **G004** in passing: a structured API
+  > *does* exist at paragraph granularity." **That was wrong** and the probe caught it. The API is
+  > structured at SECTION granularity; `<P>` carries no attributes anywhere in Part 1b. G004 is
+  > answered, but weaker than claimed here, and the difference is the whole of G001.
 - **Federal Register cannot name Part 1b at all.** `conditions[cfr][part]` requires an integer;
   `part=1b` is HTTP 400 and `part=1` is a different part. The amendment lineage has to come from term
   search and be cross-checked, not trusted — **G036**, and a worse problem than the rate-limit
@@ -195,13 +209,13 @@ Nothing below is waiting on the operator, and nothing below is waiting on the en
 restart has happened, MCP is connected, egress is open and the CLI downloads. **Every remaining
 item in Phase −1 is work owed.**
 
-1. **Write and run the three corpus probes.** Egress is open; the probe files do not exist yet.
-   `tests/probes/test_ecfr_part1b_retrieval.py`, `tests/probes/test_fr_api_paging.py`,
-   `tests/probes/test_nepatec_grain_and_filter.py` — the paths the register already names. Each must
-   reproduce its evidence rather than re-derive it, run twice in separate processes, and assert the
-   constraints in G033 and G036 rather than working around them. This unblocks `n.rule_corpus`,
-   `n.authority_ledger` and `n.precedent` — and the corpus unblocks everything, including the three
-   regulatory fixtures held back below.
+1. ~~**Write and run the three corpus probes.**~~ **DONE 2026-08-12.** All three exist at the paths
+   the register names and all three run green with verdict `fail`. `n.rule_corpus` and
+   `n.authority_ledger` are unblocked with their methods corrected; `n.precedent` is **not** —
+   G011 needs a HuggingFace identity that has accepted the NEPATEC gate, which is the one genuinely
+   new blocker Phase −1 has produced. The three regulatory fixtures held back below are now writable
+   for the eCFR-sourced counts, and `tests/probes/test_ecfr_part1b_retrieval.py` should be read
+   before writing them: a 4-char-capped citation regex silently drops 15 of 1b.4's CE entries.
 2. **Run the eight Foundry probes.** The MCP server is connected, so nothing gates these. Start with
    `tests/probes/test_superrepo_create_preview_deploy.md` section 6, whose step 0 — availability —
    is the only one already discharged. The binary has **not** been executed: no subcommand and no

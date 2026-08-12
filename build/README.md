@@ -20,27 +20,34 @@ build/
 python3 scripts/check.py build/ --phase 0
 ```
 
-Returns **11 violations, all of them `probed is false`.** That list is what remains of Phase −1's
+Returns **8 violations, all of them `probed is false`.** That list is what remains of Phase −1's
 work order, not a defect in the plan. Nothing else fails: the cap holds, edge closure holds, every
 node has an oracle and a risk axis, every BINDING clause names a kill test, every demon carries a
 pending negative check.
 
-**5 of the 16 prefabs are probed** — every one that this environment can reach. Each ran real code
-against a real published artifact at this build's dimensions, twice, and each was then attacked by
-an independent verifier. Four of the five changed a method and none changed a guarantee, which is
-what the order of work says should happen. Read the verdicts in `prefabs.jsonl`, not here.
+**8 of the 16 prefabs are probed**. Each ran real code against a real published artifact at this
+build's dimensions. Read the verdicts in `prefabs.jsonl`, not here — but note the pattern: of the
+eight, **six carry verdict `fail`**, meaning the probe ran and the prefab does not behave as the
+register expected. That is the register being corrected by execution, which is what Phase −1 is
+for, and it is not a defect count.
 
-**11 are not probed, and none for want of trying.** Ten are blocked on one of two environment facts
-— G033, the network policy that refuses the three primary sources, and G034, the absent Foundry
-enrollment. The eleventh, `foundry-cli-superrepo`, ran its whole offline half and is blocked only on
-the enrollment; that half established the SuperRepo shape and proved the Ontology-as-code toolchain
-runs with no enrollment at all, so `n.ontology` is no longer waiting on it.
+The three corpus probes landed together and each one moved a gap:
 
-The advice to **probe `foundry-cli-superrepo` first** stands and has been followed as far as it can
-be. The finding that matters for planning: the CLI is not on npm or PyPI in any form. It is served
-from each enrollment's own artifacts registry, so this probe cannot be delegated to an unenrolled
-machine or agent at all — which is a stronger constraint than "may not be available on this
-enrollment", and a constraint on *who* can run Phase −1 rather than on what it costs.
+| probe | what changed |
+| --- | --- |
+| `ecfr.gov` | G004 answered but **weaker** — the API is section-grained, not paragraph-grained. G001 is **not answerable** from the source: uniqueness belongs to a derivation, and all three available derivations fail |
+| `federalregister.gov` | G036 confirmed and widened to document metadata. Paging is offset-based, not cursor-based — and **silently wraps past page 50**. A citation in the constitution is wrong |
+| `PNNL/NEPATEC2.0` | G012 answered at file granularity, 11.9%. **There is no USFS bucket and the USDA slice holds no EIS.** G011 is newly blocked on HuggingFace authentication |
+
+**8 are not probed.** None of them is blocked on the environment any more: G033 and G034 are both closed,
+egress is open, Palantir MCP is connected, and the Foundry CLI downloads. What remains is the work
+itself — eight probe files that have never been run.
+
+The advice to **probe `foundry-cli-superrepo` first** was followed, and it paid: G032 is answered
+and SuperRepo **is** available on this enrollment, which settles the topology. The finding that
+still matters for planning is that the CLI is on no public registry in any form. It is served from
+each enrollment's own artifacts registry, so this probe cannot be delegated to an unenrolled machine
+or agent at all — a constraint on *who* can run Phase −1 rather than on what it costs.
 
 **Do not build a node whose prefabs are unprobed** — a library that misbehaves at this build's
 dimensions costs a node, and one that misbehaves silently costs the nodes above it too.

@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -m pytest tests/build/ -q)",
+      "Bash(python3 scripts/check.py build/ --phase 0)",
+      "Bash(python3 scripts/packet.py build/ --stats-all)",
+      "Bash(timeout 25 git ls-remote origin)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(timeout 20 gh auth status)",
+      "Bash(env)",
+      "Bash(timeout 30 git push --dry-run origin claude/new-build-mk28zp)",
+      "Bash(echo \"push-exit=$?\")",
+      "Bash(python3 -c ' *)",
+      "Read(//home/christianpinkerton2/.claude/**)"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "palantir-mcp"
+  ]
+}

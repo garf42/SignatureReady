@@ -41,8 +41,8 @@ and all five clauses hold against that manifest alone:
 - keys: paragraph citation, e.g. `1b.3(g)(2)(iv)`; uniqueness assumed, unverified — G001
 - cardinality: many-to-many to required elements — one paragraph may carry several elements and
   one element may span several paragraphs
-- cadence: versioned instrument; 91 FR 17092 (2026-04-03) as amended by 91 FR 40353 (2026-07-02);
-  re-check cadence undecided — G002
+- cadence: versioned instrument; 91 FR 17062 (2026-04-03, doc 2026-06537, pp. 17062–17122) as
+  amended by 91 FR 40353 (2026-07-02, doc 2026-13372); re-check cadence undecided — G002
 - late/null: none. Supersession is a new version, never an edit to an existing row
 - units/tz: none. Effective dates are US federal dates; timezone not declared — G003
 - unknowns: G001, G002, G003, G004. **ecfr.gov only** — Cornell/LII serves superseded Part 1b text

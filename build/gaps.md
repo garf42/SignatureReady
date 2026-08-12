@@ -3,10 +3,22 @@
 Reviewed in batch at phase boundaries, never mid-build. Every gap is a decision already taken by
 default; the entry records which decision and how reversible it is.
 
-- G001 — node: n.rule_corpus — volatility: low — last_reviewed: phase-0
-  Paragraph citation uniqueness across 7 CFR Part 1b is assumed, not verified.
-  Assumed: unique. Reversible: yes (a composite key change is local to one node).
-  Blocks: MR-3 on n.rule_corpus.
+- G001 — node: n.rule_corpus — volatility: low — last_reviewed: phase--1 — REFRAMED, still open
+  Was: paragraph citation uniqueness across 7 CFR Part 1b is assumed, not verified.
+  Probed 2026-08-12. The gap was asking an unanswerable question: **the citation does not exist
+  in the source**, so uniqueness is a property of a DERIVATION and not of the document. eCFR's
+  versioner API is section-grained; `<P>` carries no attributes anywhere in the part. All three
+  available derivations fail — type-first depth collides 84 times because c d i l m v x are
+  lowercase letters and roman numerals both (live here: 1b.2(c), 1b.2(d)); leading-tokens-only
+  strands 30 designators by cascade, because a parent's opener can sit inline in a previous `<P>`
+  (1b.5(b) reads "(b) Scope of analysis. (1) In preparing" as one element); and consuming inline
+  designators is unsound because 188 prose cross-references are shaped identically, e.g. 1b.7's
+  "See paragraph (e) of this section". The placeable subset IS internally unique, so the problem
+  is incompleteness rather than inconsistency.
+  Now assumed: nothing. n.rule_corpus needs either a second source of paragraph structure or an
+  explicit derivation carried and tested as part of the node, and uniqueness is then asserted of
+  that named derivation and of nothing else. See L0017.
+  Reversible: yes. Blocks: MR-3 on n.rule_corpus, and the shape of its reader.
 
 - G002 — node: n.authority_ledger — volatility: medium — last_reviewed: phase-0
   Re-check cadence for authority currency. The rule is a versioned instrument and nothing in this
@@ -20,10 +32,16 @@ default; the entry records which decision and how reversible it is.
   Assumed: date-only, no timezone arithmetic anywhere. Reversible: yes.
   Blocks: nothing today; it blocks any deadline computed to an hour.
 
-- G004 — node: n.rule_corpus — volatility: medium — last_reviewed: phase-0
-  Whether ecfr.gov exposes a structured API for Part 1b at paragraph granularity.
-  Assumed: bulk retrieval and parse. Reversible: yes (the guarantee is grain, not method).
-  Blocks: the n.rule_corpus probe.
+- G004 — node: n.rule_corpus — volatility: medium — last_reviewed: phase--1 — ANSWERED
+  Whether ecfr.gov exposes a structured API for Part 1b at paragraph granularity. **It exposes
+  one at SECTION granularity and not at paragraph granularity**, so the answer is yes to the
+  first half and no to the second.
+  Answered by execution 2026-08-12: `/api/versioner/v1/full/<date>/title-7.xml?subtitle=A&part=1b`
+  returns Part 1b alone, 222131 bytes, sha256 a8097af3…fea6db20, all twelve sections present as
+  `<DIV8 TYPE="SECTION">`. The assumed "bulk retrieval and parse" is unnecessary for retrieval.
+  It remains necessary for paragraph structure, which the payload does not carry — see G001.
+  This CORRECTS the note carried in PHASE-MINUS-1.md, which recorded this gap as answered "at
+  paragraph granularity". Reversible: yes. Blocks: nothing.
 
 - G005 — node: n.det_core — volatility: low — last_reviewed: phase-0
   Calendar basis for the one-year EA and two-year EIS deadline arithmetic is not stated.
@@ -52,15 +70,33 @@ default; the entry records which decision and how reversible it is.
   Assumed: read at ingestion, recorded per layer, no measure crosses a projection without a
   recorded transformation. Reversible: yes. Blocks: MR-4 on n.project_state.
 
-- G011 — node: n.precedent — volatility: medium — last_reviewed: phase-0
+- G011 — node: n.precedent — volatility: medium — last_reviewed: phase--1 — BLOCKED, newly
   src.nepatec row grain — one row per document or per chunk.
-  Assumed: one row per document with a page-level text field. Reversible: yes (the reader
-  changes, the guarantee does not). Blocks: the n.precedent probe.
+  Probed 2026-08-12 and **not answerable anonymously**. PNNL/NEPATEC2.0 is `gated: "auto"`, and
+  the gate blocks every file in the repository including `.gitattributes`; datasets-server returns
+  401 for splits, first-rows and size. Only README.md and the metadata and tree APIs are public.
+  This CORRECTS G033's closure note, which recorded "tree and parquet readable anonymously": there
+  are **zero parquet files** — the corpus is 505 JSONL — and content is not anonymously readable.
+  Reachability was mistaken for retrievability.
+  Assumed, unchanged: one row per document with a page-level text field. Still unverified, and now
+  with a named unblocker rather than an open question — a HuggingFace identity that has accepted
+  the gate. Page-level text and the substring property n.precedent/c1 depends on go with it.
+  Reversible: yes (the reader changes, the guarantee does not). See L0019.
+  Blocks: n.precedent's chunk grain, MR-2, and the page-anchoring guarantee.
 
-- G012 — node: n.precedent — volatility: medium — last_reviewed: phase-0
-  Selectivity of a USDA/USFS filter over src.nepatec is unmeasured.
-  Assumed: non-trivial. A silently empty filter is the failure this measures against.
-  Reversible: yes. Blocks: the acceptance corpus's precedent coverage.
+- G012 — node: n.precedent — volatility: medium — last_reviewed: phase--1 — ANSWERED at file grain
+  Selectivity of a USDA/USFS filter over src.nepatec. **60 of 505 files, 11.9%** — the assumed
+  "non-trivial" holds. Measured 2026-08-12 from the path partition `<doc_type>/<agency>/*.jsonl`
+  without retrieving any content, which is the only granularity available while G011 is blocked:
+  this is a FILE count and not a row count, and must not be quoted as one.
+  Two findings make the number less useful than it looks, and neither was anticipated:
+  - **There is no USFS bucket.** The corpus carries exactly four agencies — BLM, DOE, EPA, USDA.
+    "USDA/USFS" is not a filter this corpus can express, and n.precedent's ADVISORY clause about
+    reporting selectivity must report what was actually filtered on rather than what was intended.
+  - **The USDA slice holds no EIS at all** — 30 CE, 30 EA, 0 EIS, against EPA's 230 EIS. The
+    constitution's non-vacuity clause requires at least one emitted document of all five types, and
+    precedent coverage for the EIS and ROD paths cannot come from this corpus's USDA slice.
+  Reversible: yes. See L0019. Blocks: the acceptance corpus's precedent coverage for EIS and ROD.
 
 - G013 — node: n.element_sets — volatility: medium — last_reviewed: phase-0
   The frozen element counts in the intent predicate are transcription-derived and unverified
@@ -349,8 +385,18 @@ default; the entry records which decision and how reversible it is.
   a complete one at the point of use, and n.authority_ledger's guarantee is completeness. eCFR
   carries per-section source credits and is the natural cross-check. No lineage is transcribed from
   memory, per tie-break rules 1 and 3.
-  Also observed and not yet designed against: paging is cursor-based via `search_after_cursor`,
-  not offset, so a paged retrieval is not resumable from a page number alone.
+  **The paging note recorded here was wrong, and the truth is worse.** Probed 2026-08-12: paging
+  is OFFSET-based — `?page=N` works and pages 1 and 2 are disjoint — but **the page parameter is
+  silently ignored past a ceiling of 50 and the result set wraps**. At 20 per page over the 902
+  term hits, page 46 returns the last 2 rows, pages 47 to 50 return 0, and **page 51 returns page
+  one's rows at HTTP 200**. A fixed-N page loop re-ingests the head of the corpus as the tail with
+  no error and no empty page to stop on, and this node's `(authority_id, effective_date)` key
+  double-counts. `per_page` degrades identically: 1000 and 2000 are honoured, 5000 returns 20 — the
+  default — also at HTTP 200. No rate-limit headers exist, so pacing is policy, not feedback, which
+  is the answerable half of G006. A retrieval must therefore stop at a last page COMPUTED from the
+  reported count and assert the page beyond it is empty. See L0018.
+  G036 is also wider than recorded: the rule's own `cfr_references` records part `"1"`, so the API
+  cannot represent Part 1b in document metadata either, not only in the query filter.
   Reversible: yes — nothing is built against either route yet.
   Blocks: nothing today. It constrains how the federalregister.gov probe must be written, and it is
   the reason that probe cannot simply assert a filter and move on.
