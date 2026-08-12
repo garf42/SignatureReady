@@ -371,7 +371,85 @@ WORKDIR=/some/scratch bash tests/probes/superrepo_offline_half.sh
 Exit **2** = offline half reproduces, enrollment half still pending. Exit **1** = an offline
 finding regressed and this file is stale. Exit **0** is unreachable by construction.
 
-### Enrollment half — **NOT RUN. Requires a Foundry enrollment.**
+### Enrollment half — **STEP 0 AND STEP 1 ARE NOW RUN. 2026-08-12.**
+
+Step 0 is discharged: SuperRepo is available on this enrollment (G032). Step 1 is discharged
+as far as an unauthenticated CLI can go — **the binary executes**, and §1's central claim that
+it cannot be obtained from a public registry stands: it was fetched from the enrollment's own
+`ri.foundry.cli.artifacts.repository`, not from npm.
+
+```
+~/.local/bin/foundry --version   ->  cli 0.223.0
+```
+
+**The installed CLI is BELOW the floor §1 records.** `MIN_FOUNDRY_CLI_VERSION` in
+`@osdk/integration-testing` is `0.224.0`; this binary is `0.223.0`. Palantir's own harness would
+refuse it. `foundry update self` exists and downloads from the stack's Artifacts repository, so
+the fix is one authenticated command — but it is authenticated, so it is not yet run.
+
+#### The real top-level command surface — executed, not inferred
+
+    create  update  build  install  deploy  login  logout  start  generate-osdk
+    config  import  register  run-with-auth  help
+
+**Four commands §2a's model did not predict**, and they change what this prefab is:
+
+- **`foundry deploy` does not deploy a SuperRepo. It deploys a MARKETPLACE BUNDLE.** Its flags
+  are `--zip-path` (default `build/store.zip`), `--env-file-path` (default `env.yml`),
+  `--store-rid` (a `ri.marketplace..marketplace.…` store) and **`--folder-rid`** (the Compass
+  folder to install into). Subcommands `configure` and `poll`. So the deploy model is
+  build-a-bundle → upload-to-a-store → install-into-a-folder, which is materially different from
+  the "deploy the repo" §6 step 6 assumed. **`--folder-rid` is the containment lever** — it is
+  where `SignatureReady_v2`'s RID has to go, and it is a flag, not a prompt.
+- **`foundry build`** — `website`, `function-ts`, `ontology`. Marketplace integration blocks.
+- **`foundry validate`** — validates a bundle *without deploying*, and carries `--dry-run`
+  ("validate that a dry run build (no bundle produced) is valid"). This is a safe rehearsal that
+  needs no write, and it should be run before any `deploy` on a shared enrollment.
+- **`foundry register`** — registers a signing key with a Marketplace store, and its help names
+  **`signingKeys` as a `foundry.yml` key**. §2a's schema, read off the conjure model, does not
+  contain `signingKeys`. The schema in §2a is therefore **incomplete, not wrong** — it is the
+  model `@osdk/integration-testing` ships, and the CLI reads more than that model describes.
+
+Three more corrections to this file:
+
+- **`foundry create` is template-driven, not "scaffold a SuperRepo".** Its help: "Create a new
+  project from a template", interactive by default, templates sourced from `[[templates.sources]]`
+  in the CLI config *and* from templates published by the stack you are logged in to. Three repo
+  layouts (`template/`, `templates/<variant>/`, or the repo root). `--template` and `--variant`
+  are required in non-interactive mode. §6 step 2's bare `foundry create sigready-superrepo` will
+  not run unattended.
+- **`foundry start` has six subcommands, and `python-functions` is one of them**: `display`,
+  `ontology`, `platform-api-proxy`, `python-functions`, `status-server`, `typescript-functions`.
+  This is a *third* independent contradiction of the register's "Python functions NOT yet
+  supported", now from the shipped CLI's own help rather than from a client library or a generated
+  model. Gate (c) narrows again: what is unknown is only whether *this enrollment* has it enabled
+  and whether a Python function *executes*.
+- **`foundry install pnpm`** — "Install pnpm dependencies with Foundry authentication". pnpm is
+  the CLI's native package manager, which corroborates §3d's finding that `vite-plugin-oac`
+  hardcodes `pnpm exec`. An npm-only SuperRepo is swimming against the tool.
+
+`foundry run-with-auth '<cmd>'` injects `FOUNDRY_HOSTNAME` and `FOUNDRY_TOKEN` into a shell.
+Worth naming plainly: it is the sanctioned way to hand credentials to a build step, and it is
+also the shortest path to leaking them into a log. Do not wrap anything that prints its env.
+
+#### Authentication — where step 1 stops
+
+`~/.config/foundry-cli/config.toml` is created on first run (`[templates] sources = []`,
+`[auth]` empty). **There is no stored credential**, and:
+
+```
+foundry login refresh
+  ❌  Cannot refresh a token non-interactively: `foundry login refresh` requires human
+      interaction to open the authorisation page within a browser.
+```
+
+`foundry login` itself reads `FOUNDRY_TOKEN` from the environment for non-interactive use and
+takes `--foundry-url` (env `FOUNDRY_EXTERNAL_HOST`). **`login refresh` takes neither** — it is
+browser-only by construction. So the enrollment half from step 2 onward is blocked on a human
+opening a browser, not on anything this file can discover. That is the correct place for it to
+stop, and it is a one-command unblock.
+
+### Enrollment half, step 2 onward — **NOT RUN. Blocked on interactive authentication.**
 
 Run these on an enrolled machine, in order, and record the real output — including failures,
 which are the point. Stop at the first step that fails and record where.

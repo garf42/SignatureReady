@@ -70,33 +70,55 @@ default; the entry records which decision and how reversible it is.
   Assumed: read at ingestion, recorded per layer, no measure crosses a projection without a
   recorded transformation. Reversible: yes. Blocks: MR-4 on n.project_state.
 
-- G011 — node: n.precedent — volatility: medium — last_reviewed: phase--1 — BLOCKED, newly
+- G011 — node: n.precedent — volatility: medium — last_reviewed: phase--1 — **ANSWERED**
   src.nepatec row grain — one row per document or per chunk.
-  Probed 2026-08-12 and **not answerable anonymously**. PNNL/NEPATEC2.0 is `gated: "auto"`, and
-  the gate blocks every file in the repository including `.gitattributes`; datasets-server returns
-  401 for splits, first-rows and size. Only README.md and the metadata and tree APIs are public.
-  This CORRECTS G033's closure note, which recorded "tree and parquet readable anonymously": there
-  are **zero parquet files** — the corpus is 505 JSONL — and content is not anonymously readable.
-  Reachability was mistaken for retrievability.
-  Assumed, unchanged: one row per document with a page-level text field. Still unverified, and now
-  with a named unblocker rather than an open question — a HuggingFace identity that has accepted
-  the gate. Page-level text and the substring property n.precedent/c1 depends on go with it.
-  Reversible: yes (the reader changes, the guarantee does not). See L0019.
-  Blocks: n.precedent's chunk grain, MR-2, and the page-anchoring guarantee.
+  **Neither. It is one row per PROJECT.** Measured 2026-08-12 with a HuggingFace identity that
+  has accepted the gate, over all 60 USDA files — not a sample. The shape is
+  `{project, process, documents[]}`; each document is `{metadata, pages[]}`; each page is
+  `{"page number", "page text"}` — those keys carry literal spaces and cannot be used as
+  property apiNames unmapped. Every project/process/metadata leaf is wrapped `{"value": …}` and
+  the payload is polymorphic (str, list, int by field).
+  **Page-level text exists natively**, so n.precedent/c1 is satisfiable without a chunker
+  inventing anchors, and the reader change is a flatten — project→document→page→chunk. The
+  reversibility recorded before the probe holds: the reader moved, the guarantee did not.
+  Two hazards found, both pinned in the probe:
+  - **7.9% of USDA page numbers are RANGES** ("1-12", up to 18 pages). The "named page" is then
+    a span, and a substring check against a span is exactly **demon D1** — arriving in the
+    source rather than in the reader. D1's kill test must reject span anchors, not just
+    nearest-page assignment.
+  - **`file_metadata.total_pages` disagrees with `len(pages)` on 174 of 210 documents (83%)**.
+    `pages[]` is a chunking, not a page-by-page rendering; nothing may trust total_pages as its
+    length. 8.8% of pages corpus-wide are empty (0.1% in USDA) and would pass a substring check
+    vacuously.
+  The anonymous finding stands as a description of the gate and is unchanged: content is not
+  readable without an accepted gate, and G033's "tree and parquet readable anonymously" note is
+  still wrong on both halves — zero parquet, and content is not anonymously readable.
+  Reversible: yes. See L0019.
+  Was blocking: n.precedent's chunk grain, MR-2, and the page-anchoring guarantee. Now unblocked.
 
 - G012 — node: n.precedent — volatility: medium — last_reviewed: phase--1 — ANSWERED at file grain
   Selectivity of a USDA/USFS filter over src.nepatec. **60 of 505 files, 11.9%** — the assumed
   "non-trivial" holds. Measured 2026-08-12 from the path partition `<doc_type>/<agency>/*.jsonl`
   without retrieving any content, which is the only granularity available while G011 is blocked:
   this is a FILE count and not a row count, and must not be quoted as one.
-  Two findings make the number less useful than it looks, and neither was anticipated:
-  - **There is no USFS bucket.** The corpus carries exactly four agencies — BLM, DOE, EPA, USDA.
-    "USDA/USFS" is not a filter this corpus can express, and n.precedent's ADVISORY clause about
-    reporting selectivity must report what was actually filtered on rather than what was intended.
-  - **The USDA slice holds no EIS at all** — 30 CE, 30 EA, 0 EIS, against EPA's 230 EIS. The
-    constitution's non-vacuity clause requires at least one emitted document of all five types, and
-    precedent coverage for the EIS and ROD paths cannot come from this corpus's USDA slice.
-  Reversible: yes. See L0019. Blocks: the acceptance corpus's precedent coverage for EIS and ROD.
+  **Both of the follow-on findings recorded here on 2026-08-12 were CORRECTED later the same day**,
+  once the gate was accepted and the data itself could be read. Kept visible, because each was a
+  conclusion drawn from the path tree and stated as a fact about the corpus:
+  - ~~There is no USFS bucket, so USFS is not separable.~~ **REFUTED.** There is no USFS *path
+    bucket*, which is all the anonymous probe could see. USFS **is** separable from
+    `process.lead_agency`: "Department of Agriculture - Forest Service" on **30 of 210 projects
+    (14.3%)**, against "Department of Agriculture" on 177. n.precedent's USDA/USFS filter **is**
+    expressible — from a field, never from the path.
+  - ~~The USDA slice holds no EIS, so EIS and ROD coverage is impossible.~~ **HALF REFUTED.** At
+    document granularity the slice holds CE 173, EA 18, FONSI 14, OTHER 2, DEA 2, **ROD 1**. ROD
+    coverage exists and is **n=1** — the non-vacuity requirement is met by a single document and is
+    one deletion from failing. **EIS is the only genuinely absent type**, zero at both file and
+    document granularity. The CE/EA/EIS path buckets are **process families**, not document types;
+    the two axes do not agree and must not be quoted for one another.
+  A third finding, not anticipated at all: **the path bucket is impure.** 3 of the 210 projects
+  under `USDA/` are led by DOE (2) and the Bureau of Reclamation (1). Filtering by path is not
+  filtering by agency, and n.precedent/c2's reported selectivity must name which it measured.
+  Reversible: yes. See L0019. Blocks: the acceptance corpus's precedent coverage for EIS only.
 
 - G013 — node: n.element_sets — volatility: medium — last_reviewed: phase-0
   The frozen element counts in the intent predicate are transcription-derived and unverified

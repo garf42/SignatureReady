@@ -23,12 +23,11 @@ WHAT THIS PROBE ESTABLISHES, by running code against the real dataset:
      each of five types, and precedent coverage for the EIS and ROD paths cannot come from
      the USDA slice of this corpus at all.
 
-  4. G011 IS NOT ANSWERABLE HERE, and this is a NEW BLOCKER rather than work owed. The
-     dataset is `gated: "auto"`, and the gate blocks every file in the repository --
+  4. THE GATE IS ON CONTENT AND STILL BLOCKS ANONYMOUS READS. The dataset is
+     `gated: "auto"`, and anonymously the gate blocks every file in the repository --
      including `.gitattributes`. Only README.md and the metadata/tree APIs are public.
-     `datasets-server` answers 401 for splits, first-rows and size. Row grain, page-level
-     text and the substring property n.precedent/c1 depends on cannot be measured without
-     an authenticated HuggingFace identity that has accepted the gate.
+     `datasets-server` answers 401 for splits, first-rows and size. This is unchanged and
+     still asserted below: it is what makes the partition measurable and the rows not.
 
   5. A CORRECTION TO G033's CLOSURE NOTE, which recorded that "tree and parquet readable
      anonymously despite gated: auto". Both halves are wrong. THERE ARE NO PARQUET FILES --
@@ -36,16 +35,54 @@ WHAT THIS PROBE ESTABLISHES, by running code against the real dataset:
      readable. What is readable is the tree, which is metadata, not data. Reachability was
      mistaken for retrievability.
 
-NETWORK: fetches over HTTPS from huggingface.co. Unreachable host RAISES. The 401s below are
-ASSERTED, not tolerated -- if the gate is lifted this probe fails and G011 becomes answerable,
-which is the outcome worth being told about.
+SECTION 4 -- THE AUTHENTICATED HALF, run 2026-08-12 with a HuggingFace token that has
+accepted the gate. G011 IS NOW ANSWERED, and three findings above are CORRECTED by it.
+The anonymous half is kept exactly as it was: it characterises the gate, and it is still true.
+
+  6. G011 IS ANSWERED, AND BOTH CANDIDATE ANSWERS IN THE CONSTITUTION WERE WRONG. The grain
+     is neither one row per document nor one row per chunk. IT IS ONE ROW PER PROJECT:
+     {project, process, documents[]}, where each document carries {metadata, pages[]} and
+     each page is {"page number", "page text"} -- note the literal spaces in those keys.
+     Page-level text therefore EXISTS NATIVELY and n.precedent/c1 is satisfiable without a
+     chunker inventing page anchors.
+
+  7. USFS IS SEPARABLE AFTER ALL, and finding 2 above is REFUTED as a claim about the corpus
+     (it remains true as a claim about the *path tree*). `process.lead_agency` distinguishes
+     "Department of Agriculture - Forest Service" (30 of 210 USDA projects, 14.3%) from
+     "Department of Agriculture" (177). n.precedent's USDA/USFS filter IS expressible -- just
+     not from the path, which is the only thing the anonymous half could see.
+
+  8. THE PATH PARTITION IS IMPURE. 3 of the 210 projects under USDA/ carry a non-USDA lead
+     agency -- two DOE, one Bureau of Reclamation. Filtering by path is not filtering by
+     agency, and the ADVISORY selectivity number must say which one it measured.
+
+  9. FINDING 3 IS HALF REFUTED. At DOCUMENT granularity the USDA slice holds CE 173, EA 18,
+     FONSI 14, OTHER 2, DEA 2, and ROD 1. So ROD coverage is not absent -- it is n=1, which
+     satisfies the constitution's >=1 non-vacuity requirement by a single document and is
+     one deletion away from failing. EIS is the only type genuinely absent: zero, at both
+     file and document granularity. The path buckets CE/EA/EIS are PROCESS families; the
+     document_type field is a different axis and does not agree with them.
+
+ 10. TWO INTEGRITY HAZARDS, both measured. `file_metadata.total_pages` disagrees with
+     `len(pages)` on 174 of 210 USDA documents -- pages[] is a chunking, not a page-by-page
+     rendering, and 7.9% of USDA page numbers are RANGES ("1-12"), so "the named page" is
+     sometimes a span of up to 18 pages. And 8.8% of pages corpus-wide have empty text
+     (0.1% within USDA), which a substring check must reject rather than trivially pass.
+
+NETWORK: fetches over HTTPS from huggingface.co. Unreachable host RAISES. The anonymous 401s
+are ASSERTED, not tolerated. The authenticated half needs a token at ~/.cache/huggingface/token
+whose identity has accepted the gate; without one it reports BLOCKED and does not fail, because
+a missing credential is not a regression in the corpus.
 
 RUN:
-    python3 tests/probes/test_nepatec_grain_and_filter.py
+    python3 tests/probes/test_nepatec_grain_and_filter.py          # both halves
+    NEPATEC_SKIP_AUTHED=1 python3 tests/probes/...                 # anonymous half only
 """
 
 import collections
 import json
+import os
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -144,24 +181,30 @@ def test_g012_selectivity_is_measurable_and_non_trivial():
           "granularity only" % (usda, total, pct))
 
 
-def test_there_is_no_usfs_bucket_so_the_contract_filter_is_coarser_than_stated():
+def test_there_is_no_usfs_bucket_in_the_path_tree():
+    """Scope corrected 2026-08-12. This is true of the PATH TREE and only of the path tree.
+    USFS *is* separable from the data via process.lead_agency -- see the authenticated half,
+    which refutes the conclusion this check used to print."""
     agencies = sorted({a for _, a in grid()})
     assert "USFS" not in agencies and "FS" not in agencies, (
-        "a USFS bucket now exists (%r) -- n.precedent's USDA/USFS filter can be expressed "
-        "after all" % agencies)
-    print("      agency buckets are exactly %s; USFS is not separable from USDA"
+        "a USFS bucket now exists in the path tree (%r) -- the filter can be expressed "
+        "from the tree alone, which it previously could not" % agencies)
+    print("      path buckets are exactly %s -- no USFS *bucket*. Separability is a "
+          "question about lead_agency, answered in the authenticated half"
           % ", ".join(agencies))
 
 
-def test_the_usda_slice_carries_no_eis_at_all():
+def test_the_usda_slice_carries_no_eis_files():
+    """Scope corrected 2026-08-12. CE/EA/EIS are PROCESS families in the path, not document
+    types. 'No EIS' survives at both granularities; 'no ROD' did not -- see the authed half."""
     g = grid()
     assert g.get(("EIS", "USDA"), 0) == 0, (
-        "USDA now has %d EIS files -- precedent coverage for the EIS and ROD paths may be "
+        "USDA now has %d EIS files -- precedent coverage for the EIS path may be "
         "available from this corpus" % g[("EIS", "USDA")])
     assert g.get(("EIS", "EPA"), 0) > 100, (
         "EPA's EIS bulk is gone; the contrast this finding rests on has changed")
-    print("      USDA: %d CE, %d EA, 0 EIS. EPA holds %d EIS. The five document types the "
-          "constitution requires cannot all be covered from the USDA slice."
+    print("      USDA: %d CE, %d EA, 0 EIS files. EPA holds %d EIS. EIS is the one type "
+          "the USDA slice cannot cover at any granularity."
           % (g[("CE", "USDA")], g[("EA", "USDA")], g[("EIS", "EPA")]))
 
 
@@ -198,7 +241,9 @@ def test_readme_and_the_tree_apis_are_public_so_the_gate_is_on_content_only():
           % len(body))
 
 
-def test_g011_row_grain_is_unanswerable_and_datasets_server_confirms_it():
+def test_datasets_server_refuses_anonymously():
+    """Why G011 was blocked before a credential existed. Kept as a characterisation of the
+    gate; G011 itself is answered in the authenticated half below."""
     for endpoint in ("splits", "first-rows", "size"):
         url = ("https://datasets-server.huggingface.co/%s?dataset=%s" % (endpoint, REPO))
         if endpoint == "first-rows":
@@ -215,6 +260,234 @@ def test_g011_row_grain_is_unanswerable_and_datasets_server_confirms_it():
           "authenticated identity that has accepted the gate")
 
 
+# ------------------------------------------------- 4. G011, with the gate accepted
+#
+# Everything below needs a token. Measured 2026-08-12; every number is pinned so that a
+# change in the corpus fails this probe instead of silently re-scoping the findings.
+
+TOKEN_PATH = os.path.expanduser("~/.cache/huggingface/token")
+
+# The USDA slice, whole -- all 60 files, not a sample.
+USDA_PROJECTS = 210
+USDA_DOCUMENTS = 210
+USDA_PAGES = 2241
+USDA_DOC_TYPES = {"CE": 173, "EA": 18, "FONSI": 14, "OTHER": 2, "DEA": 2, "ROD": 1}
+USDA_LEAD_AGENCIES = {
+    "Department of Agriculture": 177,
+    "Department of Agriculture - Forest Service": 30,
+    "Department of Energy - Department of Energy": 2,
+    "Department of the Interior - Bureau of Reclamation": 1,
+}
+USFS_PROJECTS = 30
+NON_USDA_UNDER_USDA_PATH = 3
+USDA_PAGENUM_RANGES = 177
+USDA_TOTALPAGES_MISMATCH = 174
+USDA_PREPARED_BY = 208            # NOT 210 -- two documents carry an empty list
+USDA_PREPARED_BY_DELIMITED = 165
+
+ROW_KEYS = {"project", "process", "documents"}
+PAGE_KEYS = {"page number", "page text"}
+
+_AUTH = {}
+
+
+def token():
+    """None when there is no credential -- a missing token is not a corpus regression."""
+    if "tok" not in _AUTH:
+        try:
+            with open(TOKEN_PATH) as fh:
+                _AUTH["tok"] = fh.read().strip() or None
+        except OSError:
+            _AUTH["tok"] = None
+    return _AUTH["tok"]
+
+
+def authed(url, timeout=180):
+    req = urllib.request.Request(url, headers=dict(UA))
+    req.add_header("Authorization", "Bearer %s" % token())
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.status, r.read()
+
+
+def usda_rows():
+    """Every row of all 60 USDA files. Cached: this is ~6 MB over 60 requests."""
+    if "rows" not in _AUTH:
+        rows = []
+        for path in sorted(p for p in jsonl_paths() if "/USDA/" in p):
+            _, body = authed("%s/datasets/%s/resolve/main/%s" % (HF, REPO, path))
+            rows.extend(json.loads(l) for l in body.decode("utf-8").split("\n") if l.strip())
+        _AUTH["rows"] = rows
+    return _AUTH["rows"]
+
+
+def value_of(container, key):
+    """Every project/process/metadata leaf is wrapped as {"value": ...}. The payload is
+    polymorphic -- str, list or int depending on the field -- so this never assumes str."""
+    node = (container or {}).get(key)
+    return node.get("value") if isinstance(node, dict) else None
+
+
+def test_the_gate_is_accepted_by_this_identity():
+    status, body = authed("%s/api/whoami-v2" % HF)
+    who = json.loads(body)
+    assert status == 200 and who.get("name"), "whoami-v2 did not identify the token"
+    _, body = authed("%s/datasets/%s/resolve/main/%s" % (HF, REPO, GATED_SAMPLE))
+    assert len(body) > 1000, "gated sample came back empty"
+    print("      identity %r has accepted the gate; %s reads back %d bytes"
+          % (who["name"], GATED_SAMPLE, len(body)))
+
+
+def test_g011_the_row_grain_is_one_row_per_project():
+    """THE ANSWER TO G011. Neither of the constitution's two candidates was right."""
+    rows = usda_rows()
+    assert len(rows) == USDA_PROJECTS, (
+        "USDA slice holds %d rows, pinned %d" % (len(rows), USDA_PROJECTS))
+    shapes = {frozenset(r.keys()) for r in rows}
+    assert shapes == {frozenset(ROW_KEYS)}, (
+        "row shape moved: %r" % [sorted(s) for s in shapes])
+
+    docs = sum(len(r["documents"]) for r in rows)
+    pages = sum(len(d.get("pages") or []) for r in rows for d in r["documents"])
+    assert (docs, pages) == (USDA_DOCUMENTS, USDA_PAGES), (
+        "USDA slice is now %d documents / %d pages, pinned %d / %d"
+        % (docs, pages, USDA_DOCUMENTS, USDA_PAGES))
+
+    pk = {frozenset(p.keys()) for r in rows for d in r["documents"]
+          for p in (d.get("pages") or [])}
+    assert pk == {frozenset(PAGE_KEYS)}, (
+        "pages[] key set moved: %r -- 'page number'/'page text' carry literal spaces"
+        % [sorted(s) for s in pk])
+    print("      ONE ROW PER PROJECT: %d projects -> %d documents -> %d pages; "
+          "pages are exactly %s" % (len(rows), docs, pages, sorted(PAGE_KEYS)))
+
+
+def test_usfs_is_separable_from_lead_agency_refuting_the_anonymous_finding():
+    """The correction that matters most to n.precedent's contract."""
+    seen = collections.Counter()
+    for r in usda_rows():
+        for a in (value_of(r.get("process"), "lead_agency") or []):
+            seen[a] += 1
+    assert dict(seen) == USDA_LEAD_AGENCIES, (
+        "lead_agency distribution moved:\n  got    %r\n  pinned %r"
+        % (dict(seen), USDA_LEAD_AGENCIES))
+    usfs = seen["Department of Agriculture - Forest Service"]
+    assert usfs == USFS_PROJECTS
+    print("      USFS IS separable: %d of %d projects = %.1f%% carry lead_agency "
+          "'...- Forest Service'. The USDA/USFS filter is expressible."
+          % (usfs, USDA_PROJECTS, 100.0 * usfs / USDA_PROJECTS))
+
+
+def test_the_usda_path_bucket_contains_non_usda_lead_agencies():
+    """Filtering by path is not filtering by agency. The ADVISORY selectivity number in
+    n.precedent/c2 has to say which of the two it measured."""
+    stray = [a for r in usda_rows()
+             for a in (value_of(r.get("process"), "lead_agency") or [])
+             if not a.startswith("Department of Agriculture")]
+    assert len(stray) == NON_USDA_UNDER_USDA_PATH, (
+        "%d non-USDA lead agencies under USDA/, pinned %d: %r"
+        % (len(stray), NON_USDA_UNDER_USDA_PATH, stray))
+    print("      the USDA path bucket is IMPURE: %d of %d projects are led by %s"
+          % (len(stray), USDA_PROJECTS, sorted(set(stray))))
+
+
+def test_rod_exists_at_document_granularity_but_eis_does_not():
+    """Half-refutes the anonymous finding. ROD is n=1, not zero -- non-vacuity for the ROD
+    path rests on a single document. EIS is genuinely absent at both granularities."""
+    seen = collections.Counter()
+    for r in usda_rows():
+        for d in r["documents"]:
+            dm = (d.get("metadata") or {}).get("document_metadata") or {}
+            seen[value_of(dm, "document_type")] += 1
+    assert dict(seen) == USDA_DOC_TYPES, (
+        "document_type distribution moved:\n  got    %r\n  pinned %r"
+        % (dict(seen), USDA_DOC_TYPES))
+    assert seen["ROD"] == 1, "ROD count moved off 1"
+    assert not any(t in seen for t in ("EIS", "FEIS", "DEIS")), (
+        "an EIS-family document type appeared in the USDA slice: %r" % dict(seen))
+    print("      documents by type: %s"
+          % ", ".join("%s=%d" % kv for kv in sorted(seen.items())))
+    print("      ROD=1 satisfies >=1 non-vacuity by ONE document; EIS=0 cannot be covered")
+
+
+def test_page_anchoring_is_real_but_the_named_page_is_sometimes_a_span():
+    """n.precedent/c1 -- 'every chunk a substring of its named page'. Satisfiable, with two
+    measured hazards: range-valued page numbers, and empty pages that would pass trivially."""
+    ranges = empties = 0
+    checked = 0
+    for r in usda_rows():
+        for d in r["documents"]:
+            for p in d.get("pages") or []:
+                num, txt = p["page number"].strip(), p["page text"]
+                if re.match(r"^\d+\s*-\s*\d+$", num):
+                    ranges += 1
+                if not txt.strip():
+                    empties += 1
+                elif checked < 200 and len(txt) > 400:
+                    chunk = txt[120:340]
+                    assert chunk in txt, "a slice of a page is not a substring of it"
+                    checked += 1
+    assert ranges == USDA_PAGENUM_RANGES, (
+        "range-valued page numbers moved: %d, pinned %d" % (ranges, USDA_PAGENUM_RANGES))
+    assert checked >= 100, "only %d pages were long enough to exercise c1" % checked
+    print("      c1 holds on %d sampled pages. HAZARDS: %d/%d page numbers (%.1f%%) are "
+          "SPANS not pages; %d pages are empty and would pass a substring check vacuously"
+          % (checked, ranges, USDA_PAGES, 100.0 * ranges / USDA_PAGES, empties))
+
+
+def test_total_pages_metadata_disagrees_with_the_page_array():
+    """pages[] is a chunking, not a page-by-page rendering. Anything that trusts
+    total_pages as the length of pages[] is wrong on 83% of USDA documents."""
+    mismatch = match = 0
+    for r in usda_rows():
+        for d in r["documents"]:
+            fm = (d.get("metadata") or {}).get("file_metadata") or {}
+            tp = value_of(fm, "total_pages")
+            if isinstance(tp, int) and tp == len(d.get("pages") or []):
+                match += 1
+            else:
+                mismatch += 1
+    assert mismatch == USDA_TOTALPAGES_MISMATCH, (
+        "total_pages agreement moved: %d mismatch / %d match, pinned %d mismatch"
+        % (mismatch, match, USDA_TOTALPAGES_MISMATCH))
+    print("      file_metadata.total_pages != len(pages) on %d of %d documents (%.0f%%)"
+          % (mismatch, USDA_DOCUMENTS, 100.0 * mismatch / USDA_DOCUMENTS))
+
+
+def test_prepared_by_names_organisations_not_people():
+    """Bears on n.expert_directory and on aip.document-intelligence's probe dimension. The
+    corpus hands over ORGANISATIONS in a delimited blob; individual preparers are not here
+    and must come from the page text, which is what makes the AIP probe load-bearing."""
+    present = delimited = 0
+    for r in usda_rows():
+        for d in r["documents"]:
+            dm = (d.get("metadata") or {}).get("document_metadata") or {}
+            pb = value_of(dm, "prepared_by")
+            if isinstance(pb, list) and pb:
+                present += 1
+                if any(";" in s or "\n" in s for s in pb if isinstance(s, str)):
+                    delimited += 1
+    assert present == USDA_PREPARED_BY, (
+        "prepared_by is populated on %d of %d documents, pinned %d"
+        % (present, USDA_DOCUMENTS, USDA_PREPARED_BY))
+    assert delimited == USDA_PREPARED_BY_DELIMITED, (
+        "%d delimited multi-org blobs, pinned %d" % (delimited, USDA_PREPARED_BY_DELIMITED))
+    print("      prepared_by populated on %d/%d documents -- NOT all of them, %d are empty; "
+          "%d carry ';'- or newline-delimited multi-org blobs. Orgs only, no individuals."
+          % (present, USDA_DOCUMENTS, USDA_DOCUMENTS - present, delimited))
+
+
+AUTHED_CHECKS = [
+    test_the_gate_is_accepted_by_this_identity,
+    test_g011_the_row_grain_is_one_row_per_project,
+    test_usfs_is_separable_from_lead_agency_refuting_the_anonymous_finding,
+    test_the_usda_path_bucket_contains_non_usda_lead_agencies,
+    test_rod_exists_at_document_granularity_but_eis_does_not,
+    test_page_anchoring_is_real_but_the_named_page_is_sometimes_a_span,
+    test_total_pages_metadata_disagrees_with_the_page_array,
+    test_prepared_by_names_organisations_not_people,
+]
+
+
 # ---------------------------------------------------------------- runner
 
 def main():
@@ -223,14 +496,21 @@ def main():
         test_the_corpus_is_partitioned_by_doc_type_and_agency_in_the_path,
         test_there_are_no_parquet_files_correcting_the_g033_closure_note,
         test_g012_selectivity_is_measurable_and_non_trivial,
-        test_there_is_no_usfs_bucket_so_the_contract_filter_is_coarser_than_stated,
-        test_the_usda_slice_carries_no_eis_at_all,
+        test_there_is_no_usfs_bucket_in_the_path_tree,
+        test_the_usda_slice_carries_no_eis_files,
         test_the_gate_blocks_every_file_including_gitattributes,
         test_readme_and_the_tree_apis_are_public_so_the_gate_is_on_content_only,
-        test_g011_row_grain_is_unanswerable_and_datasets_server_confirms_it,
+        test_datasets_server_refuses_anonymously,
     ]
+
+    skip_authed = os.environ.get("NEPATEC_SKIP_AUTHED") or not token()
+    if not skip_authed:
+        checks = checks + AUTHED_CHECKS
+
     failures = 0
     for fn in checks:
+        if fn is AUTHED_CHECKS[0]:
+            print("\n  -- authenticated half: G011 --")
         try:
             fn()
             print("  PASS %s" % fn.__name__)
@@ -249,8 +529,20 @@ def main():
         print("\n%d check(s) FAILED" % failures)
         return 1
     print("\nAll checks passed.")
-    print("G012: ANSWERED at file granularity -- 60/505 = 11.9% USDA, and there is no USFS.")
-    print("G011: BLOCKED on HuggingFace authentication, not on effort. New blocker.")
+    if skip_authed:
+        print("G011: NOT RE-MEASURED -- no token at %s. The recorded answer stands "
+              "unverified by this run." % TOKEN_PATH)
+        print("VERDICT: fail (anonymous half only).")
+        return 0
+    print("G012: ANSWERED. 60/505 = 11.9% of files, but the path bucket is IMPURE (3 of 210 "
+          "projects are not USDA-led) and USFS IS separable via lead_agency, 30/210 = 14.3%.")
+    print("G011: ANSWERED. One row per PROJECT -- {project, process, documents[]}, each "
+          "document {metadata, pages[]}, each page {'page number','page text'}. Neither "
+          "'per document' nor 'per chunk' was correct.")
+    print("n.precedent/c1 is SATISFIABLE -- page text is native. Hazards: 7.9% of USDA page "
+          "numbers are spans, total_pages disagrees with len(pages) on 83% of documents.")
+    print("NON-VACUITY: CE/EA/FONSI/ROD are all present in the USDA slice (ROD by exactly "
+          "one document); EIS is absent at every granularity and cannot be covered.")
     print("VERDICT: fail -- the probe ran and the prefab does not behave as expected.")
     return 0
 

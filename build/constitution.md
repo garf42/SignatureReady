@@ -94,13 +94,18 @@ and all five clauses hold against that manifest alone:
 - unknowns: G009, G010
 
 ### src.nepatec
-- grain: unverified — one row per document, or per chunk — G011
-- keys: CEQ-standard metadata identifier
-- cardinality: ~120,000 documents across ~60,000 projects, 60+ agencies
-- cadence: static release
-- late/null: none
-- units/tz: none
-- unknowns: G011; selectivity of a USDA/USFS filter unmeasured — G012
+- grain: measured — one row per PROJECT: {project, process, documents[]}; each document
+  {metadata, pages[]}; each page {"page number", "page text"}, keys carry literal spaces.
+  Neither candidate in G011 was right; the reader flattens project→document→page — G011 closed
+- keys: CEQ-standard metadata identifier; every leaf wrapped as {"value": …}, payload polymorphic
+- cardinality: 505 JSONL files, no parquet; the USDA slice is 210 projects / 210 documents /
+  2,241 pages. Corpus-wide "~120,000 documents across ~60,000 projects" is unverified
+- cadence: static release; gated "auto" — content needs an accepted HuggingFace gate
+- late/null: 8.8% of pages corpus-wide carry empty text (0.1% within USDA)
+- units/tz: none. "page number" is a STRING and is a RANGE on 7.9% of USDA pages — a page
+  anchor is sometimes a span, which is demon D1 arriving in the source rather than the reader
+- unknowns: G012 answered but the path bucket is impure — 3 of 210 USDA-path projects are not
+  USDA-led, and USFS is separable only from process.lead_agency, never from the path
 
 ### src.synthetic
 - grain: one row per generated project, treatment unit, activity group, or screen

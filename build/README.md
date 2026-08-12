@@ -6,7 +6,7 @@ needs a node id and a phase.
 
 ```
 build/
-├── constitution.md      capped at 200 lines, read by every agent, every task (currently 170)
+├── constitution.md      capped at 200 lines, read by every agent, every task (currently 175)
 ├── nodes/*.md           20 nodes; only that node's agent reads its file
 ├── seams.jsonl          53 edges; 27 replay, 26 static
 ├── prefabs.jsonl        16 external dependencies, each with its probe
@@ -37,7 +37,7 @@ The three corpus probes landed together and each one moved a gap:
 | --- | --- |
 | `ecfr.gov` | G004 answered but **weaker** — the API is section-grained, not paragraph-grained. G001 is **not answerable** from the source: uniqueness belongs to a derivation, and all three available derivations fail |
 | `federalregister.gov` | G036 confirmed and widened to document metadata. Paging is offset-based, not cursor-based — and **silently wraps past page 50**. A citation in the constitution is wrong |
-| `PNNL/NEPATEC2.0` | G012 answered at file granularity, 11.9%. **There is no USFS bucket and the USDA slice holds no EIS.** G011 is newly blocked on HuggingFace authentication |
+| `PNNL/NEPATEC2.0` | G011 **and** G012 answered. The grain is **one row per project**, not per document or per chunk, and page text is native. USFS **is** separable — from `lead_agency`, not the path — the path bucket is **impure**, and **ROD exists at n=1**; only EIS is truly absent. 7.9% of page numbers are **spans**, which is demon D1 arriving in the source |
 
 **8 are not probed.** None of them is blocked on the environment any more: G033 and G034 are both closed,
 egress is open, Palantir MCP is connected, and the Foundry CLI downloads. What remains is the work
