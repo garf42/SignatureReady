@@ -443,11 +443,35 @@ foundry login refresh
       interaction to open the authorisation page within a browser.
 ```
 
-`foundry login` itself reads `FOUNDRY_TOKEN` from the environment for non-interactive use and
-takes `--foundry-url` (env `FOUNDRY_EXTERNAL_HOST`). **`login refresh` takes neither** — it is
-browser-only by construction. So the enrollment half from step 2 onward is blocked on a human
-opening a browser, not on anything this file can discover. That is the correct place for it to
-stop, and it is a one-command unblock.
+**That message is misleading, and believing it costs a session.** The refusal is TTY detection —
+`--non-interactive` "is set automatically when stdin is not a TTY", which is true of an agent's
+shell and of Claude Code's `!` prefix alike. Re-run under a real PTY and the actual error appears:
+
+```
+script -qec "$HOME/.local/bin/foundry login refresh" /dev/null
+  ❌  Not logged in: There is no stored token to refresh. Run `foundry login` first.
+```
+
+**`login refresh` cannot bootstrap.** It re-authorises an existing session and nothing else. The
+project's CLAUDE.md carried the opposite claim — "a browser OAuth flow [that] needs no static
+token" — and it was wrong; it has been corrected there too.
+
+`foundry login` takes a **bearer token**: prompted interactively, or read from `FOUNDRY_TOKEN`
+non-interactively, with `--foundry-url` (env `FOUNDRY_EXTERNAL_HOST`) skipping the URL prompt.
+Bare `foundry login` under a PTY **blocks on the token prompt** and will burn whatever timeout it
+is given — confirmed twice, with and without an empty `FOUNDRY_TOKEN`.
+
+So **there is no browser bootstrap in 0.223.0**, and a token is unavoidable for the first login.
+This bites twice, because `foundry update self` is authenticated too: the 0.223.0 → 0.224.0 floor
+cannot be cleared without a credential either. Obtaining the CLI needed a token, and so does
+using it — the standing assumption that the install token was needed *only* for the download did
+not survive.
+
+The path is therefore the in-platform SuperRepo flow at `<stack>/workspace/code/superrepo`, which
+provisions a restricted install token; feed that as `FOUNDRY_TOKEN` for one `foundry login`, after
+which the credential lives under `[auth]` in `~/.config/foundry-cli/config.toml` and later
+commands need no secret. Step 2 onward is blocked on exactly that, and on nothing this file can
+discover by itself.
 
 ### Enrollment half, step 2 onward — **NOT RUN. Blocked on interactive authentication.**
 

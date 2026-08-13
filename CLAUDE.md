@@ -60,13 +60,15 @@ inherit its claims.
 - **SuperRepo** — available, contrary to the register's hedge. See G032. The CLI is **already
   installed** at `~/.local/bin/foundry` — 179,411,392 bytes, x86-64 ELF,
   sha256 `062130e9041a6195245a497e8ae726484cd0c1a7280562a3ea9099b651ed9318`, fetched from
-  `ri.foundry.cli.artifacts.repository` on 2026-08-12. It has **never been executed** and
-  `foundry login` has **never been run**, so no subcommand and no `minCliVersion` is confirmed.
-  It was placed by hand rather than by the vendor installer, deliberately: that installer also
-  appends a PATH export to `~/.bashrc` and runs `foundry login --non-interactive`, and neither
-  belongs in a probe. `~/.local/bin` may not be on PATH — invoke it by full path.
-  Authenticate with `foundry login refresh`, which is a browser OAuth flow and needs no static
-  token. Re-downloading it would need a credential, so do not delete it casually.
+  `ri.foundry.cli.artifacts.repository` on 2026-08-12. **It has now been executed** and reports
+  `cli 0.223.0` — which is one patch BELOW the `0.224.0` floor `@osdk/integration-testing`
+  enforces. `foundry login` has still never succeeded. It was placed by hand rather than by the
+  vendor installer, deliberately: that installer also appends a PATH export to `~/.bashrc` and
+  runs `foundry login --non-interactive`, and neither belongs in a probe. `~/.local/bin` may not
+  be on PATH — invoke it by full path. Re-downloading it would need a credential, so do not
+  delete it casually. The real command surface is recorded in
+  `tests/probes/test_superrepo_create_preview_deploy.md` §6 — read it before assuming a
+  subcommand exists; four of them contradict the plan's model of this prefab.
 - **GitHub** — `gh` authenticated as `garf42`, scopes `gist, read:org, repo, workflow`.
   `git push` works. Remote `github.com/garf42/SignatureReady`.
 - **Egress** — open to eCFR, Federal Register, HuggingFace, npm, raw.githubusercontent.
@@ -89,18 +91,47 @@ token.
 **Expect source 1 to be dead.** The `FOUNDRY_TOKEN` in `~/.mcp.json` is the expired one, and the
 short-lived user token that answered on 2026-08-12 was deactivated deliberately after the CLI was
 fetched. So `scripts/foundry_api.sh` will fail until a credential exists, and that is the correct
-state, not a regression. **Do not ask the operator for a pasted user token** — prefer, in order:
-the in-platform SuperRepo flow at `<stack>/workspace/code/superrepo`, which provisions a
-restricted install token; then `foundry login refresh`, a browser OAuth flow. Neither needs a
-long-lived secret in a config file, and MCP is unaffected by all of this because it holds its own
-credential.
+state, not a regression. MCP is unaffected by all of this because it holds its own credential.
+
+### `foundry login refresh` CANNOT bootstrap — established by running it, 2026-08-12
+
+This file previously said to authenticate with `foundry login refresh`, "a browser OAuth flow
+[that] needs no static token". **That is wrong, and it will waste a session.** Run under a real
+PTY, the CLI answers:
+
+```
+❌  Not logged in: There is no stored token to refresh. Run `foundry login` first.
+```
+
+`login refresh` re-authorises an **existing** session. It is not a first-login path. And
+`foundry login` itself takes a **bearer token** — prompted interactively, or read from
+`FOUNDRY_TOKEN` for non-interactive use. There is no browser bootstrap in 0.223.0. So a token is
+**unavoidable** for the first login, and `foundry update self` needs auth too, which means the
+0.224.0 floor cannot be cleared without one either.
+
+Two traps worth naming:
+
+- **The non-interactive refusal is TTY detection, not policy.** `--non-interactive` "is set
+  automatically when stdin is not a TTY", so Claude's Bash tool and the `!` prefix both trip it
+  and produce a *misleading* error about needing a browser. `script -qec "<cmd>" /dev/null`
+  allocates a PTY and surfaces the real one. Diagnose that way before believing the first message.
+- **Bare `foundry login` blocks on a prompt** and will burn a timeout. Always give it
+  `FOUNDRY_TOKEN`, or run it in a terminal that has a human in front of it.
+
+So the order is now: **the in-platform SuperRepo flow at `<stack>/workspace/code/superrepo`**,
+which provisions a restricted install token — that is the path, not a fallback. Then feed it as
+`FOUNDRY_TOKEN` for one `foundry login`, after which the credential is stored under `[auth]` in
+`~/.config/foundry-cli/config.toml` and later commands need no secret. **Still do not ask the
+operator to paste a token into the transcript** — have them run the login themselves, or source
+it from a mode-600 file, so it never enters the conversation.
 
 `palantir-mcp` on npm is only a **wrapper**; it downloads and runs `@palantir/mcp` from the
 enrollment's own artifacts registry (`ri.artifacts.repository.discovered.foundry-mcp`). That is the
 same channel the CLI uses.
 
-Prefer OAuth over static tokens. The install token is needed *only* to fetch the CLI and can be
-deactivated afterwards; `foundry login refresh` re-authorizes in a browser.
+The install token is no longer needed *only* to fetch the CLI — that was the standing assumption
+and it did not survive contact. It is also needed to log in at all, and to run `foundry update
+self`. Deactivate it after the login has stored a credential, not after the download.
 
 ## Permission rules
 
