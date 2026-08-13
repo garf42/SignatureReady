@@ -452,26 +452,50 @@ script -qec "$HOME/.local/bin/foundry login refresh" /dev/null
   ❌  Not logged in: There is no stored token to refresh. Run `foundry login` first.
 ```
 
-**`login refresh` cannot bootstrap.** It re-authorises an existing session and nothing else. The
-project's CLAUDE.md carried the opposite claim — "a browser OAuth flow [that] needs no static
-token" — and it was wrong; it has been corrected there too.
+**`login refresh` cannot bootstrap from nothing** — it needs an existing `[[auth.profiles]]`
+entry. But it is the correct steady-state command, and the full sequence was then run end to end:
 
-`foundry login` takes a **bearer token**: prompted interactively, or read from `FOUNDRY_TOKEN`
-non-interactively, with `--foundry-url` (env `FOUNDRY_EXTERNAL_HOST`) skipping the URL prompt.
-Bare `foundry login` under a PTY **blocks on the token prompt** and will burn whatever timeout it
-is given — confirmed twice, with and without an empty `FOUNDRY_TOKEN`.
+1. The operator ran the in-platform install snippet from `<stack>/workspace/code/superrepo`. That
+   writes `[[auth.profiles]]` (`name` + `foundry_host`, **and no token**) into
+   `~/.config/foundry-cli/config.toml`, and appends **only** a PATH export to `~/.bashrc`. No
+   secret is written to either file — checked.
+2. `foundry login refresh` under a PTY then printed a browser URL, waited, and reported
+   `✅ Hi Christian, your Foundry token has been refreshed.` **Nothing was pasted.**
 
-So **there is no browser bootstrap in 0.223.0**, and a token is unavoidable for the first login.
-This bites twice, because `foundry update self` is authenticated too: the 0.223.0 → 0.224.0 floor
-cannot be cleared without a credential either. Obtaining the CLI needed a token, and so does
-using it — the standing assumption that the install token was needed *only* for the download did
-not survive.
+So CLAUDE.md's original claim — a browser OAuth flow needing no static token — is right about the
+*steady state* and was wrong only about the *bootstrap*. Both files now say so.
 
-The path is therefore the in-platform SuperRepo flow at `<stack>/workspace/code/superrepo`, which
-provisions a restricted install token; feed that as `FOUNDRY_TOKEN` for one `foundry login`, after
-which the credential lives under `[auth]` in `~/.config/foundry-cli/config.toml` and later
-commands need no secret. Step 2 onward is blocked on exactly that, and on nothing this file can
-discover by itself.
+Bare `foundry login` takes a bearer token, prompted or via `FOUNDRY_TOKEN`, and **blocks on the
+prompt** under a PTY — confirmed twice, with and without an empty `FOUNDRY_TOKEN`. It is not the
+path; the two steps above are.
+
+### Two results that change this prefab, both from running the authenticated CLI
+
+**(i) 0.223.0 IS the latest this stack publishes, so §1's 0.224.0 floor is unreachable here.**
+`foundry update self` succeeds and reports *"Foundry CLI is already up to date (version
+0.223.0)"*. The `MIN_FOUNDRY_CLI_VERSION = "0.224.0"` that `@osdk/integration-testing` enforces is
+**ahead of what this enrollment serves**. That is a property of the stack, not of the install, and
+it means Palantir's own harness would refuse the newest CLI this enrollment can give you. Nothing
+local fixes it.
+
+**(ii) The install token's scope excludes the ontology, so gate (f) is still shut.** Auth
+succeeds and the ontology service is reached, then refuses:
+
+```
+foundry import ontology --ontology-rid ri.ontology.main.ontology.aa2788ae-…
+  INFO Fetching requested ontology entities from entity-specific endpoints
+  ❌  Permission error … parameters={"missingScope": "api:usage:ontologies-read"}
+```
+
+The SuperRepo flow authorises through `/workspace/data-integration/code/gradle/auth` and grants
+**code and artifacts** scopes. Refreshing does not widen them. `foundry import ontology` — the
+command that would close **gate (f)**, the real shape of a UI-imported object type — needs
+`api:usage:ontologies-read` and therefore a differently-scoped token.
+
+**The cheaper route is `palantir-mcp`**, which holds its own credential, already reads this
+ontology, and needs nothing from the operator. Gate (f) asks what shape a UI-created type takes
+when imported; MCP can produce the type, and the remaining question is only whether the CLI's
+importer emits the flattened array shape `@osdk/maker` requires. Try MCP before asking for a token.
 
 ### Enrollment half, step 2 onward — **NOT RUN. Blocked on interactive authentication.**
 

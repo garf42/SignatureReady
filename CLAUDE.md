@@ -93,37 +93,58 @@ short-lived user token that answered on 2026-08-12 was deactivated deliberately 
 fetched. So `scripts/foundry_api.sh` will fail until a credential exists, and that is the correct
 state, not a regression. MCP is unaffected by all of this because it holds its own credential.
 
-### `foundry login refresh` CANNOT bootstrap — established by running it, 2026-08-12
+### The working auth sequence — run end to end 2026-08-12, and it is two steps
 
-This file previously said to authenticate with `foundry login refresh`, "a browser OAuth flow
-[that] needs no static token". **That is wrong, and it will waste a session.** Run under a real
-PTY, the CLI answers:
+**`foundry login refresh` cannot bootstrap from nothing, but it is the right steady-state
+command.** With no `[[auth.profiles]]` in `~/.config/foundry-cli/config.toml` it fails under a
+real PTY with:
 
 ```
 ❌  Not logged in: There is no stored token to refresh. Run `foundry login` first.
 ```
 
-`login refresh` re-authorises an **existing** session. It is not a first-login path. And
-`foundry login` itself takes a **bearer token** — prompted interactively, or read from
-`FOUNDRY_TOKEN` for non-interactive use. There is no browser bootstrap in 0.223.0. So a token is
-**unavoidable** for the first login, and `foundry update self` needs auth too, which means the
-0.224.0 floor cannot be cleared without one either.
+Once the in-platform installer has run, a profile exists (`name` + `foundry_host`, **no token**),
+and the same command then prints a browser URL, waits, and succeeds:
+`✅ Hi Christian, your Foundry token has been refreshed.` **No token is ever pasted.**
 
-Two traps worth naming:
+So the sequence is:
+
+1. **Once, to create the profile** — run the install snippet from
+   `<stack>/workspace/code/superrepo`. It writes the profile and appends *only* a PATH export to
+   `~/.bashrc` (verified: no token lands in `~/.bashrc`, and none is written to `config.toml`).
+2. **Thereafter** — `script -qec "$HOME/.local/bin/foundry login refresh" /dev/null`, click the
+   URL, done. This is the re-auth path; it needs no static token and nothing to paste.
+
+**Two traps, both cost real time:**
 
 - **The non-interactive refusal is TTY detection, not policy.** `--non-interactive` "is set
-  automatically when stdin is not a TTY", so Claude's Bash tool and the `!` prefix both trip it
-  and produce a *misleading* error about needing a browser. `script -qec "<cmd>" /dev/null`
-  allocates a PTY and surfaces the real one. Diagnose that way before believing the first message.
-- **Bare `foundry login` blocks on a prompt** and will burn a timeout. Always give it
-  `FOUNDRY_TOKEN`, or run it in a terminal that has a human in front of it.
+  automatically when stdin is not a TTY", so Claude's Bash tool *and the `!` prefix* both trip it
+  and print a *misleading* message about needing a browser. `script -qec "<cmd>" /dev/null`
+  allocates a PTY and surfaces the real error. Diagnose that way before believing the first one.
+- **Bare `foundry login` blocks on a token prompt** and will burn a timeout. Give it
+  `FOUNDRY_TOKEN`, or a human.
 
-So the order is now: **the in-platform SuperRepo flow at `<stack>/workspace/code/superrepo`**,
-which provisions a restricted install token — that is the path, not a fallback. Then feed it as
-`FOUNDRY_TOKEN` for one `foundry login`, after which the credential is stored under `[auth]` in
-`~/.config/foundry-cli/config.toml` and later commands need no secret. **Still do not ask the
-operator to paste a token into the transcript** — have them run the login themselves, or source
-it from a mode-600 file, so it never enters the conversation.
+### The install token's scope does NOT include the ontology
+
+Authentication succeeding is not the same as being able to read. `foundry import ontology`
+authenticates fine and then fails:
+
+```
+❌  Permission error … parameters={"missingScope": "api:usage:ontologies-read"}
+```
+
+The SuperRepo install flow grants **code/artifacts** scopes — its auth endpoint is
+`/workspace/data-integration/code/gradle/auth` — not ontology scopes. Refreshing does not widen
+them. Anything needing `api:usage:ontologies-read` requires a differently-scoped token, **or use
+`palantir-mcp`, which holds its own credential and does read the ontology.** Prefer MCP; it is
+already working and needs nothing from the operator.
+
+### 0.223.0 is the newest this stack serves — the 0.224.0 floor is unreachable here
+
+`foundry update self` succeeds and reports *"Foundry CLI is already up to date (version
+0.223.0)"*. So the `MIN_FOUNDRY_CLI_VERSION = 0.224.0` that `@osdk/integration-testing` enforces
+is **ahead of what this enrollment publishes**. Do not spend a session trying to reach it; it is
+a property of the stack, not of the install.
 
 `palantir-mcp` on npm is only a **wrapper**; it downloads and runs `@palantir/mcp` from the
 enrollment's own artifacts registry (`ri.artifacts.repository.discovered.foundry-mcp`). That is the
