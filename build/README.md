@@ -10,7 +10,7 @@ build/
 ├── nodes/*.md           20 nodes; only that node's agent reads its file
 ├── seams.jsonl          53 edges; 27 replay, 26 static
 ├── prefabs.jsonl        16 external dependencies, each with its probe
-├── gaps.md              37 open decisions, each with a volatility expiry
+├── gaps.md              38 open decisions, each with a volatility expiry
 └── ledger.jsonl         append-only, queried by node id, never read whole
 ```
 
@@ -39,9 +39,13 @@ The three corpus probes landed together and each one moved a gap:
 | `federalregister.gov` | G036 confirmed and widened to document metadata. Paging is offset-based, not cursor-based — and **silently wraps past page 50**. A citation in the constitution is wrong |
 | `PNNL/NEPATEC2.0` | G011 **and** G012 answered; G037 opened. The grain is **one row per project**, not per document or per chunk, and page text is native. USFS **is** separable — from `lead_agency`, not the path. Moving the filter off the path gains **6 Forest-Service EIS projects** (16 FEIS, 4 DEIS, 1 ROD), so all five non-vacuity types become coverable — at the cost of reading 18.71 GB to apply it. 7.9% of page numbers are **spans**, which is demon D1 arriving in the source |
 
-**8 are not probed.** None of them is blocked on the environment any more: G033 and G034 are both closed,
-egress is open, Palantir MCP is connected, and the Foundry CLI downloads. What remains is the work
-itself — eight probe files that have never been run.
+**8 are not probed**, and one of the eight will stay that way by choice. G033 and G034 are closed,
+Palantir MCP is connected and answering, and the Foundry CLI is installed *and authenticated*.
+**Foundry egress is not open** — no policy exists for any host this build calls, and the operator's
+requests are not expected to be approved. G038 turns that into the ingestion architecture rather
+than a blocker: fetch locally, flatten locally, upload a CSV dataset. `foundry.egress` therefore
+stays red deliberately, recording a capability the build does not rely on. What remains is the work
+itself — seven probe files that have never been run, and one standing decision.
 
 The advice to **probe `foundry-cli-superrepo` first** was followed, and it paid: G032 is answered
 and SuperRepo **is** available on this enrollment, which settles the topology. The finding that

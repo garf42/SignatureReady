@@ -458,3 +458,34 @@ default; the entry records which decision and how reversible it is.
   Reversible: yes — the derivation is one function and the fallback is recorded per document.
   Blocks: the constitution's non-vacuity clause for n.precedent, and any acceptance-corpus claim
   that all five types are present.
+
+- G038 — node: n.precedent, n.rule_corpus, n.authority_ledger — volatility: low —
+  last_reviewed: phase--1 — NEW, decided rather than discovered
+  Ingestion is **local-flatten-then-upload**, because Foundry egress is assumed unavailable.
+  Decided 2026-08-12 by the operator, who has submitted egress requests for every required URL
+  and **does not expect them to be approved**. This is the same wall that ended the prior AI FDE
+  build, so it is a standing condition of the project and not a transient outage. Measured
+  precondition behind it: no network egress policy exists on this enrollment for `www.ecfr.gov`
+  or `huggingface.co` (L0034).
+  Assumed, and this is now the ingestion architecture: **no node calls an external source from
+  inside Foundry.** Sources are retrieved on the local machine, flattened locally, written as CSV,
+  and uploaded with `create_and_write_to_foundry_dataset`, which takes a local `csvFilePath` and a
+  target folder — verified present, not yet exercised. Every dependent node's reader therefore
+  ends at a Foundry dataset and never at an HTTP client.
+  Three consequences that are not free, recorded so they are not rediscovered:
+  - **The flatten moves to the local side.** src.nepatec is nested — project → documents[] →
+    pages[] — and the upload path takes CSV. So G011's "the reader is a flatten" happens before
+    upload, in this repo, not in a Foundry transform. The flattened grain is one row per page.
+  - **Selecting the Forest-Service EIS slice needs the whole corpus, and the cheap route is
+    partial.** The 6 Forest-Service-led EIS projects that buy EIS coverage (G012) were found
+    through HuggingFace's parquet mirror, which reports `partial: true` at ~42%. Selecting them
+    for real means either accepting that ceiling and saying so, or pulling the 16.4 GB of `EIS/`
+    JSONL locally. Whichever is chosen must be stated in n.precedent/c2's emitted selectivity.
+  - **Refresh becomes a manual act.** Nothing re-fetches itself. Any currency claim — including
+    G002's re-check cadence on n.authority_ledger — is a claim about when a human last ran the
+    loader, and must be recorded as a retrieval timestamp travelling with the data.
+  Reversible: yes, and cheaply in one direction — if an egress request is later approved, a node
+  may move its reader inside Foundry without any guarantee changing. Nothing is built that
+  *depends* on egress being absent.
+  Blocks: nothing. It is the unblocking decision — it lets every source-facing node proceed
+  without waiting on an approval nobody expects.

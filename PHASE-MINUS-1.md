@@ -308,3 +308,20 @@ buys EIS coverage. Read G011, G012 and the new **G037** before touching `n.prece
 things most likely to bite: **7.9% of page numbers are spans, not pages** — demon D1 arriving in
 the source — and **`document_type` is blank on 94% of the documents you would ingest**, so
 non-vacuity needs a derived type with a reported could-not-type count.
+
+### Egress: decided, not pending — G038
+
+The operator has submitted egress requests for every required URL and **does not expect approval**;
+this is the same wall that ended the prior AI FDE build. Egress is therefore assumed **unavailable
+as a standing condition**, and the register's fallback becomes the architecture: **no node calls an
+external source from inside Foundry.** Fetch locally → flatten locally → write CSV → upload with
+`create_and_write_to_foundry_dataset` (takes a local `csvFilePath` + target folder; present,
+verified, not yet exercised).
+
+`foundry.egress` stays `probed: false` **on purpose and should stay that way.** Its probe_dims ask
+for one trivial external call from inside Foundry, and the build has now chosen not to need that
+call. The red line records a capability deliberately not relied upon, which is a different thing
+from an unknown. Read G038 before treating it as work owed.
+
+`SignatureReady_v2` is now **empty** — the `[ChrisP] SignatureReady` test app was removed by the
+operator. The folder is clean and unclaimed.
