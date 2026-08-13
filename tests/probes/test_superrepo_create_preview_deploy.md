@@ -492,10 +492,48 @@ The SuperRepo flow authorises through `/workspace/data-integration/code/gradle/a
 command that would close **gate (f)**, the real shape of a UI-imported object type — needs
 `api:usage:ontologies-read` and therefore a differently-scoped token.
 
-**The cheaper route is `palantir-mcp`**, which holds its own credential, already reads this
-ontology, and needs nothing from the operator. Gate (f) asks what shape a UI-created type takes
-when imported; MCP can produce the type, and the remaining question is only whether the CLI's
-importer emits the flattened array shape `@osdk/maker` requires. Try MCP before asking for a token.
+**The cheaper route is `palantir-mcp`**, which holds its own credential and already reads this
+ontology. It was taken, and it narrowed gate (f) considerably.
+
+### Gate (f), via MCP — the platform's native shape is the one that CRASHES `convertObject`
+
+`view_foundry_object_type` on a real UI-created type returns `propertyTypes` as a **RECORD keyed
+by property id**, not as an array:
+
+```
+"propertyTypes": {
+  "disruption-id":   { "apiName": "disruptionId", "id": "disruption-id",
+                       "rid": "ri.ontology.main.property.…", "isPrimaryKey": true,
+                       "type": { "type": "string", "string": {…} }, "isNullable": true },
+  "data-fetched-at": { "apiName": "dataFetchedAt", … "type": "timestamp", … },
+  …
+}
+```
+
+§3b recorded that `importOntologyEntity` performs **no normalization** and that passing the
+ergonomic record shape crashes downstream in `convertObject` with
+`(objectType.properties ?? []).map is not a function`. **The platform's own representation of a
+UI-created object type is that record shape.** So the two are not accidentally different — the
+mismatch is structural, and something must convert.
+
+Gate (f) therefore narrows from *"what shape does a UI-imported object type take"* to a single
+sharp question: **does `foundry import ontology` convert record→array on the way out, or does it
+pass the platform shape through?** If it passes it through, every imported type needs a shim
+before `@osdk/maker` will touch it. That question needs `api:usage:ontologies-read`, so it is
+still shut — but it is now one command from an answer rather than an open-ended investigation.
+
+Three further facts read off the same response, all of which bear on `n.ontology`:
+
+- **Property identity is doubled.** Every property carries a kebab-case `id` *and* a camelCase
+  `apiName` (`disruption-id` / `disruptionId`), plus a RID. Three names per property.
+- **Object type ids are namespace-prefixed by the platform**: the id came back as
+  `v37mzaxr.elevator-disruption-event`, not `elevator-disruption-event`. The `[SR2]` / `Sr2`
+  convention governs display name and apiName; the id prefix is assigned, not chosen.
+- **An object type requires a backing dataset.** `create_or_update_foundry_object_type` lists
+  `backingDataset` as REQUIRED, with a `propertyMapping` of property → column (or `editOnly`).
+  Datasources come back as `datasetV2` keyed by property RID. So `n.ontology` cannot create a
+  type without first creating a dataset — which is the same shape as G016's finding that MCP
+  cannot write ontology *data*, arriving one level earlier than expected.
 
 ### Enrollment half, step 2 onward — **NOT RUN. Blocked on interactive authentication.**
 

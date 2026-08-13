@@ -254,3 +254,57 @@ demon installed and watched to go red:
 - **L0005** — the README told Phase −1 to run *fourteen* probes against a register of sixteen.
   `tests/build/test_plan_prose.py` re-derives every count the plan states about itself, and caught a
   second drift on its first run.
+
+---
+
+## Session of 2026-08-12, second half — where to pick up
+
+The gate still returns **8**. Nothing flipped to `probed`, and that is the honest number: two
+prefabs were worked on and both stopped at a precondition rather than at a result. What changed is
+that every remaining blocker is now a *named next command* instead of an open question.
+
+### Foundry is authenticated, with one gap
+
+`~/.local/bin/foundry` is authenticated against `ontologize`. The working sequence, both halves
+verified:
+
+1. the in-platform installer from `<stack>/workspace/code/superrepo` writes `[[auth.profiles]]`
+   (name + host, **no token**) and appends only a PATH export to `~/.bashrc`;
+2. `script -qec "$HOME/.local/bin/foundry login refresh" /dev/null` → browser → done.
+
+Re-auth needs no pasted token. **`login refresh` cannot bootstrap from an empty config** — it
+needs the profile first. See CLAUDE.md, which carried the opposite claim and is corrected.
+
+Two hard results: **0.223.0 is the newest this stack publishes**, so `@osdk/integration-testing`'s
+`MIN_FOUNDRY_CLI_VERSION = 0.224.0` is unreachable here and no session should chase it. And the
+token's scope **excludes `api:usage:ontologies-read`**, so `foundry import ontology` authenticates
+and is then refused. Anything ontology-shaped goes through `palantir-mcp`, which holds its own
+credential and works.
+
+### The three things standing between here and building
+
+| what | blocked on | first command |
+| --- | --- | --- |
+| `foundry.egress` | **an operator decision** — an egress policy is enrollment-scoped, and no policy exists for `www.ecfr.gov` or `huggingface.co` | decide; then `get_or_create_network_egress_policy(mode="CREATE")` |
+| `aip.document-intelligence` | **entitlement unasked** — open AIP Document Intelligence on the stack and see whether it is on | then a media set + `extractLayoutAwareTextV2` with an explicit `pageRange` |
+| gate (f) | `api:usage:ontologies-read` | a Developer Console token with that scope, then `foundry import ontology --ontology-rid …` |
+
+### What `n.ontology` now knows before it writes anything
+
+- **An object type requires a backing dataset.** `create_or_update_foundry_object_type` lists
+  `backingDataset` as REQUIRED with a property→column mapping. Dataset first, always.
+- **Object type ids are namespace-prefixed by the platform** (`v37mzaxr.elevator-disruption-event`).
+  `[SR2]` / `Sr2` governs display name and apiName; the id prefix is assigned, not chosen.
+- **Property identity is tripled** — kebab-case `id`, camelCase `apiName`, and a RID.
+- `SignatureReady_v2` currently holds one resource, a third-party application
+  `[ChrisP] SignatureReady`. Nothing has been created by this build yet. No `Sr2*` object type
+  exists in the ontology.
+
+### The corpus is settled, and it moved the plan
+
+`PNNL/NEPATEC2.0` is fully probed at 20/20. Grain is **one row per project**; page text is native;
+`n.precedent`'s filter moved off the path onto `process.lead_agency` corpus-wide, which is what
+buys EIS coverage. Read G011, G012 and the new **G037** before touching `n.precedent`. The two
+things most likely to bite: **7.9% of page numbers are spans, not pages** — demon D1 arriving in
+the source — and **`document_type` is blank on 94% of the documents you would ingest**, so
+non-vacuity needs a derived type with a reported could-not-type count.
